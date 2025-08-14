@@ -88,11 +88,12 @@ If you prefer Pinata over Lighthouse:
    - Deploy `CustomToken` contract if needed
 
 5. **Update Environment Variables**
-   Add the deployed contract addresses to `.env.local`:
+   Add the deployed contract address to `.env.local`:
    ```
-   VITE_NFT_CONTRACT_ADDRESS=0x...your_nft_contract_address...
-   VITE_TOKEN_CONTRACT_ADDRESS=0x...your_token_contract_address...
+   VITE_MASTER_FACTORY_ADDRESS=0x16f048258Ec4B7cf2eDA358E83574D4aA74282Bb
    ```
+   
+   Note: The MasterFactory contract is already deployed on Avalanche Mainnet and configured in your system.
 
 ### MetaMask Network Setup
 

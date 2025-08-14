@@ -88,9 +88,9 @@ export const NFTMintForm: React.FC<NFTMintFormProps> = ({
     
     if (!validateForm() || !selectedFile) return;
 
-    // Check if NFT contract address is configured
-    if (!CONFIG.CONTRACTS.NFT_FACTORY) {
-      setError('NFT contract not configured. Please deploy the NFT contract first using Remix.');
+    // Check if MasterFactory contract address is configured
+    if (!CONFIG.CONTRACTS.MASTER_FACTORY) {
+      setError('MasterFactory contract not configured. Please check your configuration.');
       return;
     }
 
@@ -125,7 +125,7 @@ export const NFTMintForm: React.FC<NFTMintFormProps> = ({
       for (let i = 0; i < quantity; i++) {
         const result = await mintNFT({
           privateKey: wallet.privateKey,
-          contractAddress: CONFIG.CONTRACTS.NFT_FACTORY,
+          contractAddress: CONFIG.CONTRACTS.MASTER_FACTORY,
           to: formData.recipient.trim(),
           tokenURI: metadataUpload.url!
         });
@@ -322,12 +322,12 @@ export const NFTMintForm: React.FC<NFTMintFormProps> = ({
           )}
 
           {/* Network Info */}
-          {!CONFIG.CONTRACTS.NFT_FACTORY && (
+          {!CONFIG.CONTRACTS.MASTER_FACTORY && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="text-sm text-yellow-800">
                 <p className="font-medium mb-1">Setup Required:</p>
                 <p className="text-xs">
-                  Please deploy the NFT contract using Remix and update the CONFIG.CONTRACTS.NFT_FACTORY address.
+                  Please configure the MasterFactory contract address in your environment variables.
                 </p>
               </div>
             </div>
@@ -363,7 +363,7 @@ export const NFTMintForm: React.FC<NFTMintFormProps> = ({
                 !formData.name || 
                 !formData.description || 
                 !selectedFile ||
-                !CONFIG.CONTRACTS.NFT_FACTORY
+                !CONFIG.CONTRACTS.MASTER_FACTORY
               }
             >
               {isMinting ? (

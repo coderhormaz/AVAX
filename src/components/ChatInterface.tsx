@@ -3,7 +3,7 @@ import { Bot, User, Sparkles, ArrowUp, Copy, ExternalLink } from 'lucide-react';
 import { parseCommand, getHelpMessage } from '../utils/ai';
 import { sendAvax, deployToken } from '../utils/blockchain';
 import { TransactionConfirmation } from './TransactionConfirmation';
-import { TokenCreationForm } from './TokenCreationForm';
+import { SmartConfirmationDialog } from './SmartConfirmationDialog';
 import { NFTMintForm } from './NFTMintForm';
 import { CONFIG } from '../config';
 import type { WalletData } from '../App';
@@ -32,14 +32,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     {
       id: '1',
       type: 'system',
-      content: `Welcome to Avalanche AI! 🚀\n\nI'm your intelligent blockchain assistant. I can help you:\n\n• Send AVAX to any address\n• Create custom tokens (ERC-20)\n• Mint NFTs with metadata\n• Check balances and transaction status\n• Answer blockchain questions\n\nJust type naturally, like "send 0.5 AVAX to alice" or "create a token called MyToken".\n\nWhat would you like to do today?`,
+      content: `Hey there! 👋 Welcome to AVAX AI!\n\nI'm your intelligent blockchain buddy who speaks your language! 🧠✨\n\n**What I can do for you:**\n• 💸 **Send AVAX** - "send 2 AVAX to my friend"\n• 🪙 **Create Tokens** - "make a GameCoin with 1M supply"\n• 🎨 **Mint NFTs** - "create nft called CoolArt"\n• 🔍 **Smart Help** - I understand typos, casual language & synonyms!\n\n**Try me with natural language:**\n• "hey, make me a token called AwesomeToken"\n• "send some avax to 0x123..."\n• "creat nft named pixl art" (I'll fix the typos! 😊)\n\nWhat awesome thing shall we build today? 🚀`,
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState<any>(null);
-  const [showTokenForm, setShowTokenForm] = useState(false);
+  const [showSmartConfirmation, setShowSmartConfirmation] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState('');
+  const [parsedParams, setParsedParams] = useState<any>(null);
+  const [requestType, setRequestType] = useState<'token' | 'nft' | undefined>(undefined);
   const [showNFTForm, setShowNFTForm] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -125,35 +128,85 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               message: aiResponse.message
             });
           } else {
+            let messageContent = aiResponse.message;
+            
+            // Add missing params info if available
+            if (aiResponse.missingParams?.length) {
+              messageContent += `\n\n**Missing Information:** ${aiResponse.missingParams.join(', ')}`;
+            }
+            
+            // Add helpful suggestions if available
+            if (aiResponse.suggestions?.length) {
+              messageContent += '\n\n💡 **Suggestions:**\n' + aiResponse.suggestions.map(s => `• ${s}`).join('\n');
+            }
+            
             addMessage({
               type: 'ai',
-              content: aiResponse.message + (aiResponse.missingParams?.length ? `\n\n**Missing Information:** ${aiResponse.missingParams.join(', ')}` : '')
+              content: messageContent
             });
           }
           break;
 
         case 'create_token':
-          if (aiResponse.needsConfirmation && aiResponse.parameters) {
-            setShowConfirmation({
-              type: 'create_token',
-              parameters: aiResponse.parameters,
-              message: aiResponse.message
+          // Use simple local parsing
+          if (aiResponse.success && aiResponse.parameters) {
+            // Successfully parsed the token request
+            setCurrentPrompt(inputMessage);
+            setParsedParams(aiResponse.parameters);
+            setRequestType('token');
+            setShowSmartConfirmation(true);
+            addMessage({
+              type: 'ai', 
+              content: aiResponse.message
             });
           } else {
-            setShowTokenForm(true);
+            // Show intelligent response about what's missing
+            let messageContent = aiResponse.message;
+            
+            if (aiResponse.missingParams?.length) {
+              messageContent += `\n\n**Missing Information:** ${aiResponse.missingParams.join(', ')}`;
+            }
+            
+            if (aiResponse.suggestions?.length) {
+              messageContent += '\n\n💡 **Suggestions:**\n' + aiResponse.suggestions.map(s => `• ${s}`).join('\n');
+            }
+            
             addMessage({
               type: 'ai',
-              content: '🪙 **Create Token**\n\nI\'ll help you create a custom ERC-20 token. Please fill out the token creation form with your token details.'
+              content: messageContent
             });
           }
           break;
 
         case 'mint_nft':
-          setShowNFTForm(true);
-          addMessage({
-            type: 'ai',
-            content: '🎨 **Mint NFT**\n\nExciting! Let\'s create your NFT. Please upload your image and provide the metadata details in the form.'
-          });
+          // Use simple local NFT parsing
+          if (aiResponse.success && aiResponse.parameters) {
+            // Successfully parsed the NFT request
+            setCurrentPrompt(inputMessage);
+            setParsedParams(aiResponse.parameters);
+            setRequestType('nft');
+            setShowSmartConfirmation(true);
+            addMessage({
+              type: 'ai',
+              content: aiResponse.message
+            });
+          } else {
+            // Show intelligent response about what's missing
+            let messageContent = aiResponse.message;
+            
+            if (aiResponse.missingParams?.length) {
+              messageContent += `\n\n**Missing Information:** ${aiResponse.missingParams.join(', ')}`;
+            }
+            
+            if (aiResponse.suggestions?.length) {
+              messageContent += '\n\n💡 **Suggestions:**\n' + aiResponse.suggestions.map(s => `• ${s}`).join('\n');
+            }
+            
+            addMessage({
+              type: 'ai',
+              content: messageContent
+            });
+          }
           break;
 
         case 'help':
@@ -390,18 +443,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         />
       )}
 
-      {showTokenForm && (
-        <TokenCreationForm
+      {showSmartConfirmation && (
+        <SmartConfirmationDialog
+          isOpen={showSmartConfirmation}
+          userPrompt={currentPrompt}
           wallet={wallet}
-          onClose={() => setShowTokenForm(false)}
-          onTokenCreated={(result: any) => {
-            setShowTokenForm(false);
-            addMessage({
-              type: 'ai',
-              content: `✅ **Token Created Successfully**\n\nYour token has been deployed!\n\n**Contract Address:** ${result.contractAddress}\n**Transaction Hash:** ${result.txHash}`,
-              txHash: result.txHash
-            });
-            onTransactionComplete();
+          parsedParams={parsedParams}
+          requestType={requestType}
+          onClose={() => {
+            setShowSmartConfirmation(false);
+            setCurrentPrompt('');
+            setParsedParams(null);
+            setRequestType(undefined);
           }}
         />
       )}

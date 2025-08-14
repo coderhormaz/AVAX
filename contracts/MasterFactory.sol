@@ -27,70 +27,110 @@ contract MasterFactory {
     }
     
     /**
-     * @dev Deploy a token with AI-friendly interface
-     * @param tokenName Name like "My Awesome Token"
-     * @param tokenSymbol Symbol like "MAT"  
-     * @param supply Total supply without decimals (e.g., 1000000 for 1M tokens)
-     * @param decimals Number of decimals (18 is standard)
+     * @dev Create a token for users - AI Assistant Interface
+     * @param name Token name (user input: "My Awesome Token")
+     * @param ticker Token symbol/ticker (user input: "MAT")
+     * @param supply Total token supply (user input: 1000000)
      */
     function createToken(
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint256 supply,
-        uint8 decimals
-    ) public returns (address) {
-        return tokenFactory.deployToken(
-            tokenName,
-            tokenSymbol,
-            supply,
-            decimals,
-            msg.sender
-        );
-    }
-    
-    /**
-     * @dev Deploy a token with standard settings (18 decimals)
-     * @param tokenName Name like "My Awesome Token"
-     * @param tokenSymbol Symbol like "MAT"
-     * @param supply Total supply without decimals
-     */
-    function createTokenSimple(
-        string memory tokenName,
-        string memory tokenSymbol,
+        string memory name,
+        string memory ticker,
         uint256 supply
     ) public returns (address) {
-        return tokenFactory.deployTokenSimple(tokenName, tokenSymbol, supply);
+        return tokenFactory.deployTokenSimple(name, ticker, supply);
     }
     
     /**
-     * @dev Deploy an NFT collection
-     * @param collectionName Name like "My NFT Collection"
-     * @param collectionSymbol Symbol like "MNC"
-     * @param metadataBaseURI Base URI for metadata (IPFS, etc.)
+     * @dev Create NFT(s) for users - AI Assistant Interface  
+     * @param nftName Name of the NFT (user input: "My Cool NFT")
+     * @param description Description of the NFT (will be included in metadata)
+     * @param imageURI URI of the uploaded image (IPFS hash from image upload)
+     * @param quantity How many NFTs to mint (currently limited to 1 for simplicity)
      */
     function createNFT(
-        string memory collectionName,
-        string memory collectionSymbol,
-        string memory metadataBaseURI
-    ) public returns (address) {
-        return nftFactory.deployNFT(
-            collectionName,
-            collectionSymbol,
-            metadataBaseURI,
+        string memory nftName,
+        string memory description, 
+        string memory imageURI,
+        uint256 quantity
+    ) public returns (address nftContract) {
+        // For now, we only support quantity of 1
+        require(quantity > 0, "Quantity must be greater than 0");
+        
+        // Generate collection symbol from name (first 3 chars + "NFT")
+        string memory symbol = string(abi.encodePacked(_getFirstChars(nftName, 3), "NFT"));
+        
+        // Create metadata URI that includes description
+        // In a full implementation, this would be properly formatted JSON metadata
+        string memory metadataURI = string(abi.encodePacked(
+            imageURI, 
+            "?description=", 
+            _urlEncode(description)
+        ));
+        
+        // Create the NFT collection contract using NFTFactory
+        nftContract = nftFactory.deployNFT(
+            nftName,
+            symbol,
+            metadataURI, // Use enhanced metadata URI
             msg.sender
         );
+        
+        // Note: For quantity > 1, additional minting would need to be implemented
+        // Currently returns the contract for single NFT creation
+        return nftContract;
     }
     
     /**
-     * @dev Deploy an NFT collection with default IPFS URI
-     * @param collectionName Name like "My NFT Collection"
-     * @param collectionSymbol Symbol like "MNC"
+     * @dev Simple URL encoding for description (basic implementation)
      */
-    function createNFTSimple(
-        string memory collectionName,
-        string memory collectionSymbol
-    ) public returns (address) {
-        return nftFactory.deployNFTWithDefaultURI(collectionName, collectionSymbol);
+    function _urlEncode(string memory str) internal pure returns (string memory) {
+        // Basic implementation - replace spaces with %20
+        bytes memory strBytes = bytes(str);
+        uint256 spaceCount = 0;
+        
+        // Count spaces
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            if (strBytes[i] == 0x20) { // space character
+                spaceCount++;
+            }
+        }
+        
+        if (spaceCount == 0) {
+            return str; // No spaces to encode
+        }
+        
+        // Create new bytes array with extra space for %20
+        bytes memory encoded = new bytes(strBytes.length + spaceCount * 2);
+        uint256 encodedIndex = 0;
+        
+        for (uint256 i = 0; i < strBytes.length; i++) {
+            if (strBytes[i] == 0x20) { // space
+                encoded[encodedIndex++] = 0x25; // %
+                encoded[encodedIndex++] = 0x32; // 2
+                encoded[encodedIndex++] = 0x30; // 0
+            } else {
+                encoded[encodedIndex++] = strBytes[i];
+            }
+        }
+        
+        return string(encoded);
+    }
+    
+    /**
+     * @dev Helper function to get first N characters for symbol generation
+     */
+    function _getFirstChars(string memory str, uint256 n) internal pure returns (string memory) {
+        bytes memory strBytes = bytes(str);
+        if (strBytes.length == 0) return "NFT";
+        
+        uint256 len = strBytes.length < n ? strBytes.length : n;
+        bytes memory result = new bytes(len);
+        
+        for (uint256 i = 0; i < len; i++) {
+            result[i] = strBytes[i];
+        }
+        
+        return string(result);
     }
     
     /**

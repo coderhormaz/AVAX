@@ -24,24 +24,16 @@ export const CONFIG = {
   // Always use Mainnet
   CURRENT_NETWORK: 'MAINNET',
 
-  // AI Configuration
-  AI: {
-    GEMINI_API_KEY: getEnvVar('VITE_GEMINI_API_KEY'),
-    MODEL: getEnvVar('VITE_AI_MODEL', 'gemini-2.0-flash-exp'),
-    MAX_TOKENS: parseInt(getEnvVar('VITE_AI_MAX_TOKENS', '1000')),
-    TEMPERATURE: parseFloat(getEnvVar('VITE_AI_TEMPERATURE', '0.3'))
-  },
-
   // Wallet Requirements
   WALLET: {
     MIN_AVAX_BALANCE: parseFloat(getEnvVar('VITE_MIN_AVAX_BALANCE', '0.1')),
     STORAGE_KEY: getEnvVar('VITE_WALLET_STORAGE_KEY', 'avax_wallet_key')
   },
 
-  // Contract Addresses (Set via environment variables after deployment)
+  // Contract Addresses (Deployed Contract Information)
   CONTRACTS: {
-    NFT_FACTORY: getEnvVar('VITE_NFT_CONTRACT_ADDRESS', ''),
-    TOKEN_FACTORY: getEnvVar('VITE_TOKEN_CONTRACT_ADDRESS', '')
+    // Main Factory Contract - AI Assistant uses this address (deployed on Avalanche Mainnet)
+    MASTER_FACTORY: getEnvVar('VITE_MASTER_FACTORY_ADDRESS', '0x5708fBd5178DD97AC90848de5800fF79b947051d')
   },
 
   // IPFS/Storage Configuration

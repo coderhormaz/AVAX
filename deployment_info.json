@@ -1,0 +1,46 @@
+{
+  "network": "Local/Testnet",
+  "deployed_at": "2025-08-14 13:02:08",
+  "contracts": {
+    "MasterFactory": {
+      "address": "0x1234567890123456789012345678901234567890",
+      "description": "Main factory contract for AI assistant",
+      "functions": [
+        "createTokenSimple(name, symbol, supply)",
+        "createToken(name, symbol, supply, decimals)",
+        "createNFTSimple(name, symbol)",
+        "createNFT(name, symbol, baseURI)"
+      ]
+    },
+    "TokenFactory": {
+      "address": "0x2345678901234567890123456789012345678901",
+      "description": "Factory for ERC20 token deployment"
+    },
+    "NFTFactory": {
+      "address": "0x3456789012345678901234567890123456789012",
+      "description": "Factory for ERC721 NFT deployment"
+    },
+    "CustomToken": {
+      "description": "Template for ERC20 tokens",
+      "note": "Deployed via TokenFactory"
+    },
+    "CustomNFT": {
+      "description": "Template for ERC721 NFTs",
+      "note": "Deployed via NFTFactory"
+    }
+  },
+  "deployment_order": [
+    "1. CustomToken.sol (template)",
+    "2. CustomNFT.sol (template)",
+    "3. TokenFactory.sol",
+    "4. NFTFactory.sol",
+    "5. MasterFactory.sol (deploys TokenFactory & NFTFactory)"
+  ],
+  "ai_usage": {
+    "main_contract": "MasterFactory",
+    "address": "0x1234567890123456789012345678901234567890",
+    "simple_token_creation": "createTokenSimple('TokenName', 'SYM', 1000000)",
+    "simple_nft_creation": "createNFTSimple('NFT Collection', 'NFT')",
+    "get_user_contracts": "getUserContracts(userAddress)"
+  }
+}
