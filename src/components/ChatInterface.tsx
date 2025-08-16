@@ -5,6 +5,7 @@ import { sendAvax, deployToken } from '../utils/blockchain';
 import { TransactionConfirmation } from './TransactionConfirmation';
 import { SmartConfirmationDialog } from './SmartConfirmationDialog';
 import { NFTMintForm } from './NFTMintForm';
+import { AITokenDeploymentManager } from '../utils/aiTokenManager';
 import { CONFIG } from '../config';
 import type { WalletData } from '../App';
 
@@ -45,8 +46,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [requestType, setRequestType] = useState<'token' | 'nft' | undefined>(undefined);
   const [showNFTForm, setShowNFTForm] = useState(false);
   
+  // AI Token Deployment Manager
+  const [aiTokenManager] = useState(() => new AITokenDeploymentManager(wallet));
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Update AI manager when wallet changes
+  useEffect(() => {
+    aiTokenManager.updateWallet(wallet);
+  }, [wallet, aiTokenManager]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -107,7 +116,35 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return;
       }
 
-      // Parse command with AI
+      // Check if this looks like a token creation request or confirmation
+      const tokenKeywords = ['create', 'make', 'generate', 'build', 'deploy', 'token', 'coin', 'currency'];
+      const confirmKeywords = ['yes', 'y', 'confirm', 'proceed', 'no', 'n', 'edit', 'change', 'cancel'];
+      
+      const hasTokenKeyword = tokenKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+      );
+      
+      const hasConfirmKeyword = confirmKeywords.some(keyword => 
+        userMessage.toLowerCase().trim() === keyword
+      );
+      
+      const aiManagerState = aiTokenManager.getCurrentState();
+      
+      // If AI manager is in confirming state, or if it's a token request, use AI manager
+      if (hasTokenKeyword || hasConfirmKeyword || aiManagerState.stage === 'confirming') {
+        // Use our advanced AI Token system
+        console.log('🤖 Using AI Token Creation System for:', userMessage);
+        const aiTokenResponse = await aiTokenManager.processUserInput(userMessage);
+        
+        addMessage({
+          type: 'ai',
+          content: aiTokenResponse
+        });
+        
+        return;
+      }
+
+      // Parse command with AI for other actions
       const aiResponse = await parseCommand(userMessage, wallet.address);
       
       if (!aiResponse.success) {

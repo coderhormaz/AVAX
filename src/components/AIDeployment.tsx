@@ -25,7 +25,7 @@ const MASTER_FACTORY_ABI = [
   "event NFTFactoryDeployed(address nftFactory)"
 ];
 
-// Direct deployment using private key (bypasses MetaMask)
+// Direct deployment using private key
 async function deployWithPrivateKey(wallet: WalletData, contractCall: (contract: ethers.Contract) => Promise<any>) {
   try {
     // Create provider and wallet from private key
@@ -62,7 +62,7 @@ export async function deployTokenForAI(name: string, ticker: string, supply: num
       throw new Error('Wallet not provided. Please ensure you are logged in.');
     }
 
-    // Use direct deployment with private key (bypasses MetaMask)
+    // Use direct deployment with private key
     const result = await deployWithPrivateKey(wallet, async (masterFactory) => {
       // First test if the contract is accessible
       try {
@@ -102,7 +102,8 @@ export async function deployTokenForAI(name: string, ticker: string, supply: num
       message: `Token "${name}" (${ticker}) deployed successfully via MasterFactory!`,
       contractAddress: result.tokenAddress,
       transactionHash: result.transactionHash,
-      explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`
+      explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`,
+      tokenUrl: `https://snowtrace.io/token/${result.tokenAddress}?type=erc20&chainid=null`
     };
   } catch (error) {
     console.error('Token deployment error:', error);
@@ -162,7 +163,8 @@ export async function deployNFTForAI(
       message: `NFT "${name}" deployed successfully via MasterFactory!`,
       contractAddress: result.nftContract,
       transactionHash: result.transactionHash,
-      explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`
+      explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`,
+      tokenUrl: `https://snowtrace.io/token/${result.nftContract}?type=erc721&chainid=null`
     };
   } catch (error) {
     console.error('NFT deployment error:', error);
@@ -207,24 +209,14 @@ export const AIDeploymentComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null);
 
-  // Connect wallet
+  // Connect wallet (removed MetaMask popup)
   const connectWallet = useCallback(async () => {
-    try {
-      setLoading(true);
-      await blockchainService.switchToAvalanche();
-      const wallet = await blockchainService.connectWallet();
-      setUserAddress(wallet.address);
-      setIsConnected(true);
-    } catch (error) {
-      console.error('Wallet connection failed:', error);
-      setDeploymentResult({
-        type: 'token',
-        success: false,
-        error: `Wallet connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    } finally {
-      setLoading(false);
-    }
+    console.log('Wallet connection handled by private key input - no popup needed');
+    setDeploymentResult({
+      type: 'token',
+      success: false,
+      error: 'Please use the private key wallet connection in the main interface'
+    });
   }, []);
 
   return (

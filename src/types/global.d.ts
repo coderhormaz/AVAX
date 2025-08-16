@@ -1,11 +1,7 @@
-// Type definitions for MetaMask and Web3
+// Type definitions for Web3 (MetaMask references removed)
 declare global {
   interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, callback: (...args: any[]) => void) => void;
-      removeListener: (event: string, callback: (...args: any[]) => void) => void;
-    };
+    // MetaMask ethereum object removed - using private key wallet instead
   }
 }
 

@@ -1,0 +1,28 @@
+{
+  "name": "My Awesome Token",
+  "description": "A revolutionary token for the future of DeFi",
+  "image": "ipfs://QmYourTokenImageHash",
+  "symbol": "MAT",
+  "decimals": 18,
+  "properties": {
+    "supply": 1000000,
+    "mintable": false,
+    "burnable": true,
+    "pausable": false
+  },
+  "external_url": "https://yourproject.com",
+  "attributes": [
+    {
+      "trait_type": "Type",
+      "value": "Utility"
+    },
+    {
+      "trait_type": "Network", 
+      "value": "Avalanche"
+    },
+    {
+      "trait_type": "Standard",
+      "value": "ERC-20"
+    }
+  ]
+}

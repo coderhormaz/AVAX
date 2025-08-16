@@ -1,8 +1,7 @@
 // Web3 Integration for Token and NFT Deployment
-// This file handles all blockchain interactions
+// This file handles all blockchain interactions using private key wallets
 
 import { ethers } from 'ethers';
-import { CONFIG } from '../config.js';
 
 // Contract ABIs
 const MASTER_FACTORY_ABI = [
@@ -37,82 +36,32 @@ const ERC721_ABI = [
 
 export class BlockchainService {
   private provider: ethers.BrowserProvider | null = null;
-  private signer: ethers.Signer | null = null;
   private masterFactory: ethers.Contract | null = null;
 
   constructor() {
     this.initializeProvider();
   }
 
-  // Initialize Web3 provider
+  // Initialize Web3 provider (removed MetaMask dependencies)
   async initializeProvider() {
-    if (typeof window.ethereum !== 'undefined') {
-      this.provider = new ethers.BrowserProvider(window.ethereum);
-      this.signer = await this.provider.getSigner();
-      this.masterFactory = new ethers.Contract(
-        CONFIG.CONTRACTS.MASTER_FACTORY,
-        MASTER_FACTORY_ABI,
-        this.signer
-      );
-    } else {
-      throw new Error('MetaMask not found. Please install MetaMask.');
-    }
+    // Provider initialization is handled by private key wallet creation
+    // No MetaMask popup initialization needed
+    console.log('Provider initialization skipped - using private key wallet');
   }
 
-  // Connect wallet
+  // Connect wallet (removed MetaMask popup)
   async connectWallet() {
-    if (!this.provider) await this.initializeProvider();
-    
-    if (!window.ethereum) {
-      throw new Error('MetaMask not found. Please install MetaMask.');
-    }
-    
-    try {
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const address = await this.signer!.getAddress();
-      const balance = await this.provider!.getBalance(address);
-      
-      return {
-        address,
-        balance: ethers.formatEther(balance)
-      };
-    } catch (error: unknown) {
-      throw new Error(`Failed to connect wallet: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    // Wallet connection is handled by private key input
+    // No MetaMask popup needed
+    console.log('Wallet connection handled by private key input');
+    throw new Error('Please use private key wallet connection instead');
   }
 
-  // Switch to Avalanche network
+  // Switch to Avalanche network (removed MetaMask popup)
   async switchToAvalanche() {
-    if (!window.ethereum) {
-      throw new Error('MetaMask not found. Please install MetaMask.');
-    }
-
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0xA86A' }], // 43114 in hex
-      });
-    } catch (switchError: any) {
-      // Network not added, add it
-      if (switchError.code === 4902) {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0xA86A',
-            chainName: 'Avalanche Network',
-            rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
-            nativeCurrency: {
-              name: 'AVAX',
-              symbol: 'AVAX',
-              decimals: 18
-            },
-            blockExplorerUrls: ['https://snowtrace.io/']
-          }]
-        });
-      } else {
-        throw switchError;
-      }
-    }
+    // Network switching is handled automatically with private key wallet
+    // No MetaMask popup needed
+    console.log('Network switching handled automatically with private key wallet');
   }
 
   // Create Token
