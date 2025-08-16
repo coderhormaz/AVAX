@@ -442,8 +442,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         </div>
 
         {/* Input Area */}
-        <div className="chat-input-container">
-          <div className="chat-input-wrapper">
+        <div style={{ 
+          padding: '12px 16px', 
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)', 
+          background: 'rgba(255, 255, 255, 0.02)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minHeight: '64px'
+        }}>
+          
             <textarea
               ref={inputRef}
               value={inputMessage}
@@ -453,22 +461,65 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               className="chat-input"
               rows={1}
               disabled={isLoading}
+              style={{
+                flex: '1',
+                minHeight: '36px',
+                maxHeight: '120px',
+                resize: 'none',
+                lineHeight: '1.4',
+                fontSize: '14px',
+                padding: '8px 12px',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent'
+              }}
             />
             
             <button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isLoading}
               className="chat-send-btn"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: '2px solid transparent',
+                transition: 'all 0.2s ease',
+                background: !inputMessage.trim() || isLoading 
+                  ? 'rgba(255, 255, 255, 0.1)' 
+                  : 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                cursor: !inputMessage.trim() || isLoading ? 'not-allowed' : 'pointer',
+                boxShadow: !inputMessage.trim() || isLoading 
+                  ? 'none' 
+                  : '0 2px 8px rgba(99, 102, 241, 0.3)',
+                transform: 'translateY(0)',
+              }}
+              onMouseEnter={(e) => {
+                if (!(!inputMessage.trim() || isLoading)) {
+                  e.currentTarget.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.border = '2px solid transparent';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = !inputMessage.trim() || isLoading 
+                  ? 'none' 
+                  : '0 2px 8px rgba(99, 102, 241, 0.3)';
+              }}
             >
-              <ArrowUp size={18} />
+              <ArrowUp size={16} style={{ 
+                color: !inputMessage.trim() || isLoading ? 'rgba(255, 255, 255, 0.3)' : '#ffffff' 
+              }} />
             </button>
           </div>
-          
-          <div className="chat-input-hint">
-            Press Enter to send • Shift + Enter for new line • Powered by Advanced AI
-          </div>
+
         </div>
-      </div>
 
       {/* Modals */}
       {showConfirmation && (
