@@ -66,7 +66,7 @@ const SYNONYMS: { [key: string]: string[] } = {
   'called': ['named', 'titled', 'with name', 'known as'],
   'send': ['transfer', 'pay', 'give', 'move', 'transmit', 'forward'],
   'mint': ['create', 'generate', 'make', 'produce', 'issue'],
-  'nft': ['collectible', 'digital art', 'non-fungible', 'unique token', 'artwork']
+  'nft': ['collectible', 'digital art', 'non-fungible', 'unique token', 'artwork', 'digital collectible', 'art piece', 'digital asset']
 };
 
 // Intelligent typo correction
@@ -125,7 +125,7 @@ function generateGreeting(): string {
 /**
  * Advanced intelligent pattern matching for commands
  */
-export const parseCommand = async (userInput: string, walletAddress?: string): Promise<AIResponse> => {
+export const parseCommand = async (userInput: string, _walletAddress?: string): Promise<AIResponse> => {
   // Note: walletAddress available for future personalization features
   let input = correctTypos(userInput.toLowerCase().trim());
   input = expandSynonyms(input);
@@ -208,8 +208,66 @@ export const parseCommand = async (userInput: string, walletAddress?: string): P
     }
   }
 
-  // Enhanced Create Token patterns with flexible parsing
-  if (/(create|make|deploy|launch|build|generate|start|new)/.test(input) && /(token|coin|currency|crypto|digital asset)/.test(input)) {
+  // Enhanced NFT patterns with creative understanding
+  if (/(mint|create|make|generate|produce|issue)/.test(input) && /(nft|collectible|digital art|non-fungible|unique token|artwork)/.test(input)) {
+    // More flexible name extraction - look for quoted names, after "called/named", or any descriptive text
+    const nameMatch = input.match(/(?:called|named|titled|with name|known as)\s+["']?([^"',\n]+)["']?/i) ||
+                     input.match(/(?:nft|collectible|art)\s+["']?([^"',\n]+?)["']?(?:\s+(?:with|description|desc)|$)/i) ||
+                     input.match(/["']([^"']+)["']/i) || // Look for quoted strings
+                     input.match(/(?:create|make|mint)\s+(?:an?\s+)?(?:nft\s+)?(?:called\s+)?["']?([a-zA-Z0-9\s]+?)["']?(?:\s|$)/i);
+    
+    // Look for description hints
+    const descMatch = input.match(/(?:description|desc|about|details?)\s+["']?([^"',\n]+)["']?/i) ||
+                     input.match(/(?:that|which)\s+(?:is|shows|depicts)\s+([^,\n]+)/i);
+    
+    // Look for quantity
+    const quantityMatch = input.match(/(?:quantity|amount|number|count)\s+(\d+)/i) ||
+                         input.match(/(\d+)\s+(?:pieces?|copies|nfts?)/i);
+    
+    const name = nameMatch ? nameMatch[1].trim().replace(/\b\w/g, l => l.toUpperCase()) : null;
+    const description = descMatch ? descMatch[1].trim() : null;
+    const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
+    
+    // If no name found, check if user just said "create nft" or similar
+    const isGenericRequest = !name && /(create|make|mint).*nft/i.test(input);
+    
+    if (isGenericRequest) {
+      // User didn't specify a name, so we'll let the wizard handle it
+      return {
+        success: true,
+        action: 'mint_nft',
+        parameters: { 
+          name: null, // Let the wizard ask for name
+          description: description || null,
+          quantity: quantity
+        },
+        message: `🎨 **NFT Creation Started!**\n\nGreat! I'll help you create an NFT. The wizard will guide you through:\n\n• Choosing a name for your NFT\n• Adding a description ${description ? '(I detected: "' + description + '")' : '(optional)'}\n• Uploading your artwork (optional)\n• Setting quantity${quantity > 1 ? ' (' + quantity + ' pieces)' : ''}\n• Confirming details and minting\n\nLet's create something amazing! ✨`,
+        needsConfirmation: true
+      };
+    } else {
+      // User provided a name or we have enough info
+      const creativeNames = ['Digital Masterpiece', 'Unique Creation', 'Crypto Art', 'Digital Collectible', 'Blockchain Gem'];
+      const finalName = name || creativeNames[Math.floor(Math.random() * creativeNames.length)];
+      const finalDesc = description || 'A unique digital collectible on the Avalanche blockchain';
+      
+      return {
+        success: true,
+        action: 'mint_nft',
+        parameters: { 
+          name: finalName, 
+          description: finalDesc,
+          quantity: quantity
+        },
+        message: `🎨 **NFT Creation Started!**\n\nI'm excited to help you create "${finalName}"!\n\n✨ **NFT Details:**\n• Name: ${finalName}\n• Description: ${finalDesc}\n• Quantity: ${quantity} ${quantity === 1 ? 'unique piece' : 'pieces'}\n\nThe wizard will let you upload artwork and make any final adjustments. Ready to create? 🌟`,
+        needsConfirmation: true
+      };
+    }
+  }
+
+  // Enhanced Create Token patterns (moved after NFT to avoid conflicts)
+  if (/(create|make|deploy|launch|build|generate|start|new)/.test(input) && 
+      /(token|coin|currency|crypto|digital asset)/.test(input) && 
+      !/(nft|collectible|digital art|non-fungible|unique token|artwork)/.test(input)) {
     // Advanced name extraction patterns
     const namePatterns = [
       /(?:called|named|titled|with name|known as)\s+([a-zA-Z0-9\s]+?)(?:\s+(?:symbol|ticker|with|supply|decimals)|$)/i,
@@ -274,32 +332,6 @@ export const parseCommand = async (userInput: string, walletAddress?: string): P
         ]
       };
     }
-  }
-
-  // Enhanced NFT patterns with creative understanding
-  if (/(mint|create|make|generate|produce|issue)/.test(input) && /(nft|collectible|digital art|non-fungible|unique token|artwork)/.test(input)) {
-    const nameMatch = input.match(/(?:called|named|titled)\s+([^,\n]+)/i) ||
-                     input.match(/(?:nft|collectible|art)\s+([^,\n]+)/i);
-    const descMatch = input.match(/(?:description|desc|about)\s+([^,\n]+)/i);
-    
-    const name = nameMatch ? nameMatch[1].trim() : null;
-    const description = descMatch ? descMatch[1].trim() : null;
-    
-    const creativeNames = ['Digital Masterpiece', 'Unique Creation', 'Crypto Art', 'Digital Collectible', 'Blockchain Gem'];
-    const defaultName = name || creativeNames[Math.floor(Math.random() * creativeNames.length)];
-    const defaultDesc = description || 'A unique digital collectible on the Avalanche blockchain';
-    
-    return {
-      success: true,
-      action: 'mint_nft',
-      parameters: { 
-        name: defaultName, 
-        description: defaultDesc,
-        quantity: 1
-      },
-      message: `Amazing! 🎨 I'm excited to help you create "${defaultName}"!\n\n✨ **NFT Details:**\n• Name: ${defaultName}\n• Description: ${defaultDesc}\n• Quantity: 1 unique piece\n\nThis is going to be a beautiful addition to the blockchain! Ready to mint? 🌟`,
-      needsConfirmation: true
-    };
   }
 
   // Contextual unknown command response

@@ -103,7 +103,7 @@ export async function deployTokenForAI(name: string, ticker: string, supply: num
       contractAddress: result.tokenAddress,
       transactionHash: result.transactionHash,
       explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`,
-      tokenUrl: `https://snowtrace.io/token/${result.tokenAddress}?type=erc20&chainid=null`
+      tokenUrl: `https://snowtrace.io/address/${result.tokenAddress}`
     };
   } catch (error) {
     console.error('Token deployment error:', error);
@@ -164,7 +164,7 @@ export async function deployNFTForAI(
       contractAddress: result.nftContract,
       transactionHash: result.transactionHash,
       explorerUrl: `https://snowtrace.io/tx/${result.transactionHash}`,
-      tokenUrl: `https://snowtrace.io/token/${result.nftContract}?type=erc721&chainid=null`
+      tokenUrl: `https://web3.okx.com/explorer/avalanche/assets/${result.nftContract}`
     };
   } catch (error) {
     console.error('NFT deployment error:', error);

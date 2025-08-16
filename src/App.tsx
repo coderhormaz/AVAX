@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { WalletConnectModal } from './components/WalletConnectModal';
 import { ChatInterface } from './components/ChatInterface';
 import { WalletInfo } from './components/WalletInfo';
+import IPFSDebugPanel from './components/IPFSDebugPanel';
 import { createWalletFromPrivateKey } from './utils/wallet';
 import { initializeAI } from './utils/ai';
 import { CONFIG } from './config';
@@ -512,6 +513,9 @@ function App() {
           onConnect={handleWalletConnect}
           error={error}
         />
+        
+        {/* IPFS Debug Panel - Remove in production */}
+        {process.env.NODE_ENV === 'development' && <IPFSDebugPanel />}
       </div>
     </div>
   );
