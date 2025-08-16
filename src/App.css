@@ -1,3 +1,7 @@
+/* Import Landing Page Styles */
+@import './styles/landing.css';
+@import './styles/modern-landing.css';
+
 /* Premium Avalanche AI Styles */
 
 /* Modern scrollbar */

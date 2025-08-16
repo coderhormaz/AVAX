@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { WalletConnect } from './components/WalletConnect';
+import { WalletConnectModal } from './components/WalletConnectModal';
 import { ChatInterface } from './components/ChatInterface';
 import { WalletInfo } from './components/WalletInfo';
 import { createWalletFromPrivateKey } from './utils/wallet';
 import { initializeAI } from './utils/ai';
 import { CONFIG } from './config';
-import { Sparkles, Wallet2, ArrowUpRight, Shield, Zap, Menu, X } from 'lucide-react';
 import './App.css';
+import './styles/modern-landing.css';
 
 export interface WalletData {
   address: string;
@@ -18,7 +18,13 @@ function App() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [currentSection, setCurrentSection] = useState('home');
+  
+  // Typing animation state
+  const [typedText, setTypedText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+  const fullText = 'Welcome to Avalanche AI';
 
   // Initialize app
   useEffect(() => {
@@ -51,6 +57,29 @@ function App() {
     initApp();
   }, []);
 
+  // Typing animation effect
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (isTyping && typedText.length < fullText.length) {
+      timeoutId = setTimeout(() => {
+        setTypedText(fullText.slice(0, typedText.length + 1));
+      }, 100); // Typing speed
+    } else if (typedText.length === fullText.length) {
+      setIsTyping(false);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [typedText, isTyping, fullText]);
+
+  // Reset typing animation on page load/refresh
+  useEffect(() => {
+    setTypedText('');
+    setIsTyping(true);
+  }, []);
+
   const handleWalletConnect = async (privateKey: string) => {
     try {
       setError(null);
@@ -60,6 +89,7 @@ function App() {
       localStorage.setItem(CONFIG.WALLET.STORAGE_KEY, privateKey);
       
       setWallet(walletInfo);
+      setWalletModalOpen(false);
     } catch (err: any) {
       setError(err.message || 'Failed to connect wallet');
     }
@@ -68,7 +98,6 @@ function App() {
   const handleWalletDisconnect = () => {
     localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
     setWallet(null);
-    setSidebarOpen(false);
   };
 
   const refreshWalletBalance = async () => {
@@ -82,158 +111,407 @@ function App() {
     }
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setCurrentSection(sectionId);
+  };
+
+  const handleLetsStart = () => {
+    if (wallet) {
+      // Navigate to chat interface - this will be handled by the main interface
+      return;
+    } else {
+      setWalletModalOpen(true);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative">
-            <div className="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
-            <Sparkles className="w-6 h-6 text-purple-400 absolute top-3 left-3" />
+      <div className="loading-screen">
+        <div className="loading-content">
+          <div className="loading-logo">
+            <div className="loading-spinner">
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+            </div>
+            <div className="loading-icon">✨</div>
           </div>
-          <div className="text-center">
-            <p className="text-white font-medium">Initializing Avalanche AI Assistant...</p>
-            <p className="text-slate-400 text-sm mt-1">Connecting to Avalanche Mainnet</p>
+          <div className="loading-text">
+            <h3>Initializing Avalanche AI</h3>
+            <p>Connecting to Avalanche Mainnet (Chain ID: 43114)</p>
           </div>
+        </div>
+        <div className="loading-particles">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div key={i} className="particle" style={{ '--delay': `${i * 0.1}s` } as React.CSSProperties} />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (!wallet) {
+  // If wallet is connected, show the main interface
+  if (wallet) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Header */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-3xl"></div>
-          <div className="relative px-6 py-16">
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="flex items-center justify-center mb-8">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-purple-500/25">
-                    <Sparkles className="w-10 h-10 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                    <Zap className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-              </div>
-              
-              <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-purple-100 to-blue-100 bg-clip-text text-transparent mb-6">
-                Avalanche AI
-              </h1>
-              
-              <p className="text-2xl text-slate-300 mb-4 font-light">
-                Professional Blockchain Assistant
-              </p>
-
-              <p className="text-lg text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-                Experience the future of blockchain interaction. Send AVAX, create tokens, mint NFTs, and manage your portfolio with natural language commands powered by advanced AI.
-              </p>
-
-              {/* Features Grid */}
-              <div className="grid md:grid-cols-3 gap-8 mb-16 max-w-4xl mx-auto">
-                <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:bg-white/10 transition-all duration-500 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:shadow-lg group-hover:shadow-green-500/25 transition-all duration-500">
-                    <Wallet2 className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Smart Wallet</h3>
-                  <p className="text-slate-400 leading-relaxed">Enterprise-grade wallet management with advanced security features and seamless blockchain interactions</p>
-                </div>
-
-                <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:bg-white/10 transition-all duration-500 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:shadow-lg group-hover:shadow-purple-500/25 transition-all duration-500">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">AI Intelligence</h3>
-                  <p className="text-slate-400 leading-relaxed">Natural language processing powered by advanced AI for intuitive blockchain operations and smart automation</p>
-                </div>
-
-                <div className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:bg-white/10 transition-all duration-500 hover:scale-105">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:shadow-lg group-hover:shadow-blue-500/25 transition-all duration-500">
-                    <Shield className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Bank-Grade Security</h3>
-                  <p className="text-slate-400 leading-relaxed">Military-grade encryption with local key storage ensuring your assets remain completely secure</p>
-                </div>
-              </div>
-
-              {/* Network Status */}
-              <div className="flex items-center justify-center mb-12">
-                <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-2xl px-6 py-3 flex items-center space-x-3">
-                  <div className="relative">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    <div className="absolute inset-0 w-3 h-3 bg-red-500 rounded-full animate-ping opacity-75"></div>
-                  </div>
-                  <span className="text-red-200 font-medium">Live on Avalanche Mainnet</span>
-                  <ArrowUpRight className="w-5 h-5 text-red-300" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Wallet Connection */}
-        <div className="max-w-lg mx-auto px-6 pb-16">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-10 shadow-2xl">
-            <WalletConnect onConnect={handleWalletConnect} error={error} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app">
-      {/* Mobile Header */}
-      <div className="mobile-header">
-        <div className="mobile-header-content">
-          <div className="mobile-header-brand">
-            <div className="mobile-header-icon">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <h1 className="mobile-header-title">Avalanche AI</h1>
-              <p className="mobile-header-subtitle">Mainnet</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="btn btn-ghost btn-sm"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-      </div>
-
-      <div className="app-content">
-        {/* Sidebar */}
-        <div className={`app-sidebar ${sidebarOpen ? 'mobile-open' : ''}`}>
-          {/* Sidebar Content */}
-          <div className="sidebar-content">
-            <div className="sidebar-section">
-              <h3>Wallet</h3>
-              <WalletInfo 
-                wallet={wallet} 
-                onRefresh={refreshWalletBalance}
-                onDisconnect={handleWalletDisconnect}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Overlay for Mobile */}
-        <div 
-          className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
-          onClick={() => setSidebarOpen(false)}
-        />
-
+      <div className="app">
         {/* Main Content */}
         <div className="app-main">
+          {/* Wallet Info Section */}
+          <div className="wallet-info-section">
+            <WalletInfo 
+              wallet={wallet}
+              onRefresh={refreshWalletBalance}
+              onDisconnect={handleWalletDisconnect}
+            />
+          </div>
+          
+          {/* Chat Interface */}
           <ChatInterface 
             wallet={wallet}
             onTransactionComplete={refreshWalletBalance}
           />
         </div>
+      </div>
+    );
+  }
+  return (
+    <div className="App">
+      <div className="galaxy-website">
+        {/* Animated Galaxy Background */}
+        <div className="galaxy-background">
+          <div className="stars"></div>
+          <div className="moving-particles"></div>
+          <div className="cosmic-dust"></div>
+          <div className="nebula"></div>
+          <div className="floating-orbs"></div>
+        </div>
+
+        {/* Navigation Header */}
+        <header className="navbar">
+          <div className="nav-container">
+            <div className="nav-logo">
+              <span className="logo-text">
+                <span className="logo-avalanche">Avalanche</span>
+                <span className="logo-ai">AI</span>
+              </span>
+            </div>
+            <nav className="nav-menu">
+              <a href="#home" onClick={() => scrollToSection('home')} className={currentSection === 'home' ? 'active' : ''}>
+                Home
+              </a>
+              <a href="#about" onClick={() => scrollToSection('about')} className={currentSection === 'about' ? 'active' : ''}>
+                About
+              </a>
+              <a href="#techstack" onClick={() => scrollToSection('techstack')} className={currentSection === 'techstack' ? 'active' : ''}>
+                Tech Stack
+              </a>
+              <a href="#usp" onClick={() => scrollToSection('usp')} className={currentSection === 'usp' ? 'active' : ''}>
+                Features
+              </a>
+              <a href="#contact" onClick={() => scrollToSection('contact')} className={currentSection === 'contact' ? 'active' : ''}>
+                Contact
+              </a>
+              <button 
+                className="lets-start-btn cyber-glow" 
+                onClick={handleLetsStart}
+              >
+                {wallet ? 'Launch AI' : 'Let\'s Start'}
+              </button>
+            </nav>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section id="home" className="hero-section">
+          <div className="hero-content">
+            <h1 className="hero-title">
+              <span className="typing-text">
+                {typedText}
+                {isTyping && <span className="cursor">|</span>}
+              </span>
+            </h1>
+            <p className="hero-subtitle fade-in-up">
+              Professional Blockchain Assistant – AI-powered wallet management, 
+              tokens, NFTs, and seamless blockchain interactions on Avalanche Network.
+            </p>
+            
+            <div className="hero-buttons">
+              <button 
+                className="primary-btn cosmic-pulse" 
+                onClick={() => setWalletModalOpen(true)}
+              >
+                <span className="btn-icon">🚀</span>
+                Connect Wallet
+              </button>
+              <button 
+                className="secondary-btn quantum-border" 
+                onClick={() => scrollToSection('about')}
+              >
+                Learn More
+              </button>
+            </div>
+
+            {/* Live Network Status */}
+            <div className="network-status">
+              <div className="status-indicator quantum-pulse"></div>
+              <span>Live on Avalanche Mainnet (Chain ID: 43114)</span>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section id="about" className="about-section">
+          <div className="container">
+            <h2 className="section-title cosmic-text">About Avalanche AI</h2>
+            <div className="about-content">
+              <div className="about-text-container">
+                <div className="about-text">
+                  <p className="about-description fade-in">
+                    🚀 <strong>Avalanche AI</strong> is a revolutionary blockchain assistant that combines the power of artificial intelligence 
+                    with the security and speed of the Avalanche network. Our platform enables users to interact with 
+                    blockchain technology through natural language, making complex operations simple and accessible.
+                  </p>
+                  <p className="about-description fade-in">
+                    🛡️ Built with <strong>enterprise-grade security</strong> in mind, our AI assistant helps you manage wallets, create tokens, 
+                    mint NFTs, and execute smart contracts without requiring deep technical knowledge. Your private keys 
+                    never leave your browser, ensuring maximum security and privacy.
+                  </p>
+                  <p className="about-description fade-in">
+                    ⚡ Experience the future of <strong>decentralized finance</strong> with sub-second transaction finality, 
+                    low costs, and an intuitive AI-powered interface that understands your needs.
+                  </p>
+                </div>
+              </div>
+              <div className="about-stats">
+                <div className="stat-item quantum-card">
+                  <h3 className="stat-number">100%</h3>
+                  <p>Client-Side Security</p>
+                </div>
+                <div className="stat-item quantum-card">
+                  <h3 className="stat-number">24/7</h3>
+                  <p>AI Assistance</p>
+                </div>
+                <div className="stat-item quantum-card">
+                  <h3 className="stat-number">0</h3>
+                  <p>Server Storage</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tech Stack Section */}
+        <section id="techstack" className="techstack-section">
+          <div className="container">
+            <h2 className="section-title cosmic-text">Technology Stack</h2>
+            <div className="tech-grid">
+              <div className="tech-category quantum-glass">
+                <h3>Frontend</h3>
+                <div className="tech-items">
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">⚛️</span>
+                    <span>React 18</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">📘</span>
+                    <span>TypeScript</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">⚡</span>
+                    <span>Vite</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🎨</span>
+                    <span>CSS3 + Animations</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="tech-category quantum-glass">
+                <h3>Blockchain</h3>
+                <div className="tech-items">
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🔗</span>
+                    <span>Avalanche Network</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">📜</span>
+                    <span>Solidity</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🌐</span>
+                    <span>Web3.js / Ethers.js</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🔐</span>
+                    <span>Private Key Management</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="tech-category quantum-glass">
+                <h3>AI & Tools</h3>
+                <div className="tech-items">
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🤖</span>
+                    <span>Advanced AI Engine</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">📁</span>
+                    <span>IPFS Storage</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🔐</span>
+                    <span>Client-Side Encryption</span>
+                  </div>
+                  <div className="tech-item hover-glow">
+                    <span className="tech-icon">🚀</span>
+                    <span>Real-time Processing</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* USP Section */}
+        <section id="usp" className="usp-section">
+          <div className="container">
+            <h2 className="section-title cosmic-text">Unique Features</h2>
+            <div className="usp-grid">
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">🧠</div>
+                <h3>AI-Powered Intelligence</h3>
+                <p>Natural language processing enables complex blockchain operations through simple conversations. Just tell us what you want to do!</p>
+              </div>
+              
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">🔒</div>
+                <h3>Ultimate Security</h3>
+                <p>Zero server storage, client-side encryption, and browser-only private key management. Your keys never leave your device.</p>
+              </div>
+              
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">⚡</div>
+                <h3>Lightning Fast</h3>
+                <p>Built on Avalanche network for sub-second finality and extremely low transaction costs. Experience DeFi at light speed.</p>
+              </div>
+              
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">🎯</div>
+                <h3>User-Friendly</h3>
+                <p>No coding required. Interact with blockchain through an intuitive chat interface that understands plain English.</p>
+              </div>
+              
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">🛠️</div>
+                <h3>Complete Toolkit</h3>
+                <p>Token creation, NFT minting, wallet management, smart contract deployment, and DeFi interactions all in one place.</p>
+              </div>
+              
+              <div className="usp-card quantum-glass hover-lift">
+                <div className="usp-icon">🌍</div>
+                <h3>Decentralized</h3>
+                <p>Fully decentralized architecture with no central points of failure. True Web3 philosophy in action.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section id="contact" className="contact-section">
+          <div className="container">
+            <h2 className="section-title cosmic-text">Get In Touch</h2>
+            <div className="contact-content">
+              <div className="contact-form quantum-glass">
+                <h3>Send us a Message</h3>
+                <form className="form">
+                  <div className="form-group">
+                    <input type="text" placeholder="Your Name" className="form-input quantum-input" />
+                  </div>
+                  <div className="form-group">
+                    <input type="email" placeholder="Your Email" className="form-input quantum-input" />
+                  </div>
+                  <div className="form-group">
+                    <textarea placeholder="Your Message" rows={5} className="form-textarea quantum-input"></textarea>
+                  </div>
+                  <button type="submit" className="submit-btn cosmic-pulse">
+                    Send Message
+                  </button>
+                </form>
+              </div>
+              
+              <div className="contact-info quantum-glass">
+                <h3>Connect With Us</h3>
+                <div className="social-links">
+                  <a href="#" className="social-link quantum-hover">
+                    <span className="social-icon">💼</span>
+                    <span>LinkedIn: xyz</span>
+                  </a>
+                  <a href="#" className="social-link quantum-hover">
+                    <span className="social-icon">🐦</span>
+                    <span>Twitter: xyz</span>
+                  </a>
+                  <a href="#" className="social-link quantum-hover">
+                    <span className="social-icon">📧</span>
+                    <span>Email: xyz@avalancheai.com</span>
+                  </a>
+                </div>
+                <p className="contact-note">
+                  * Contact information is for showcase purposes only
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="footer">
+          <div className="container">
+            <div className="footer-content">
+              <div className="footer-logo">
+                <span className="logo-text">
+                  <span className="logo-avalanche">Avalanche</span>
+                  <span className="logo-ai">AI</span>
+                </span>
+                <p>Professional Blockchain Assistant</p>
+              </div>
+              
+              <div className="footer-links">
+                <div className="footer-section">
+                  <h4>Navigation</h4>
+                  <a href="#home" onClick={() => scrollToSection('home')}>Home</a>
+                  <a href="#about" onClick={() => scrollToSection('about')}>About</a>
+                  <a href="#techstack" onClick={() => scrollToSection('techstack')}>Tech Stack</a>
+                  <a href="#contact" onClick={() => scrollToSection('contact')}>Contact</a>
+                </div>
+                
+                <div className="footer-section">
+                  <h4>Connect</h4>
+                  <a href="#">LinkedIn: xyz</a>
+                  <a href="#">Twitter: xyz</a>
+                  <a href="#">Email: xyz@avalancheai.com</a>
+                </div>
+              </div>
+            </div>
+            
+            <div className="footer-bottom">
+              <p>&copy; 2025 Avalanche AI. Built with ❤️ for the future of blockchain.</p>
+            </div>
+          </div>
+        </footer>
+
+        {/* Wallet Connect Modal - NO METAMASK */}
+        <WalletConnectModal
+          isOpen={walletModalOpen}
+          onClose={() => setWalletModalOpen(false)}
+          onConnect={handleWalletConnect}
+          error={error}
+        />
       </div>
     </div>
   );
