@@ -53,6 +53,13 @@ export class AINFTManager {
 
     // If starting fresh NFT creation
     if (this.state.stage === 'idle') {
+      // Check if this is actually an NFT request
+      const isNFTRequest = /(nft|collectible|digital art|non-fungible|artwork|art|erc721|mint)/.test(userMessage.toLowerCase());
+      
+      if (!isNFTRequest) {
+        return "I think you might want to create a token instead of an NFT. For tokens, try: 'create token called MyToken ticker MTK supply 1000000'";
+      }
+      
       // Parse the initial message for any provided details
       const extractedName = this.extractNFTName(userMessage);
       
@@ -172,16 +179,25 @@ export class AINFTManager {
   private extractNFTName(message: string): string | undefined {
     // Look for patterns like "create nft called X" or "make nft named Y"
     const patterns = [
+      /create\s+nft\s+(?:called|named|titled)?\s*["']?([^"']+)["']?/i,
+      /make\s+nft\s+(?:called|named|titled)?\s*["']?([^"']+)["']?/i,
+      /mint\s+nft\s+(?:called|named|titled)?\s*["']?([^"']+)["']?/i,
       /create\s+(?:an?\s+)?nft\s+(?:called|named|titled)\s+["']?([^"']+)["']?/i,
       /make\s+(?:an?\s+)?nft\s+(?:called|named|titled)\s+["']?([^"']+)["']?/i,
       /mint\s+(?:an?\s+)?nft\s+(?:called|named|titled)\s+["']?([^"']+)["']?/i,
-      /(?:called|named|titled)\s+["']?([^"']+)["']?/i
+      /(?:called|named|titled)\s+["']?([^"']+)["']?/i,
+      // Handle simple "create nft MyName" patterns
+      /create\s+nft\s+([a-zA-Z0-9\s]+?)(?:\s+with|\s+description|$)/i,
+      /make\s+nft\s+([a-zA-Z0-9\s]+?)(?:\s+with|\s+description|$)/i
     ];
 
     for (const pattern of patterns) {
       const match = message.match(pattern);
       if (match && match[1]) {
-        return match[1].trim();
+        const name = match[1].trim();
+        // Filter out common words that shouldn't be part of the name
+        const filteredName = name.replace(/\b(nft|token|called|named|create|make|mint|with|description)\b/gi, '').trim();
+        return filteredName || name; // Return filtered name, or original if filtering removes everything
       }
     }
 

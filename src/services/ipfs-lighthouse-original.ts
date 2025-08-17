@@ -9,7 +9,7 @@ export class IPFSServiceLighthouseOriginal {
   }
 
   // Upload file to IPFS via Lighthouse (original v4 style - simple and direct)
-  async uploadFile(file: File, name?: string): Promise<string> {
+  async uploadFile(file: File, _name?: string): Promise<string> {
     if (!this.lighthouseApiKey) {
       throw new Error('Lighthouse API key not configured. Please set VITE_LIGHTHOUSE_API_KEY in environment');
     }

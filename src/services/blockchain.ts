@@ -4,6 +4,8 @@
 import { ethers } from 'ethers';
 
 // Contract ABIs
+// Note: MASTER_FACTORY_ABI currently unused but kept for future direct blockchain operations
+/*
 const MASTER_FACTORY_ABI = [
   "function createToken(string memory name, string memory ticker, uint256 supply) public returns (address)",
   "function createNFT(string memory nftName, string memory description, string memory imageURI, uint256 quantity) public returns (address nftContract, uint256[] memory tokenIds)",
@@ -12,6 +14,7 @@ const MASTER_FACTORY_ABI = [
   "event TokenDeployed(address indexed tokenAddress, address indexed owner, string name, string symbol, uint256 initialSupply, uint8 decimals)",
   "event NFTDeployed(address indexed nftAddress, address indexed owner, string name, string symbol, string baseURI)"
 ];
+*/
 
 const ERC20_ABI = [
   "function name() public view returns (string)",
