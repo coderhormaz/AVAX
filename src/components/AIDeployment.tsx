@@ -79,7 +79,9 @@ export async function deployTokenForAI(name: string, ticker: string, supply: num
       
       // Try with minimal parameters first
       console.log('� Calling createToken...');
-      const tx = await masterFactory.createToken(name, ticker, supply);
+      const tx = await masterFactory.createToken(name, ticker, supply, {
+        gasLimit: 2500000, // Increased gas limit to prevent stuck transactions
+      });
       
       console.log('✅ Transaction sent:', tx.hash);
       
@@ -204,9 +206,9 @@ export const AIHelpers = {
 
 // Simple React Component for UI demonstration (optional - AI uses the exported functions above)
 export const AIDeploymentComponent: React.FC = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [userAddress, setUserAddress] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isConnected] = useState(false);
+  const [userAddress] = useState('');
+  const [loading] = useState(false);
   const [deploymentResult, setDeploymentResult] = useState<DeploymentResult | null>(null);
 
   // Connect wallet (removed MetaMask popup)

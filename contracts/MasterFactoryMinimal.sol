@@ -7,10 +7,9 @@ import "./CustomNFT.sol";
 import "./SharedNFTCollection.sol";
 
 /**
- * @title MasterFactory - Optimized Version
- * @dev Master factory contract for AI assistant to deploy both tokens and NFTs
- * Supports both individual NFT collections and shared community collections
- * Optimized for contract size limits
+ * @title MasterFactory - Minimal Version
+ * @dev Optimized master factory for AI assistant with shared NFT collection support
+ * Reduced contract size for deployment within limits
  */
 contract MasterFactory {
     
@@ -55,17 +54,17 @@ contract MasterFactory {
     }
     
     /**
-     * @dev Create NFT(s) for users - Individual collection
+     * @dev Create individual NFT collection
      */
     function createNFT(
         string memory nftName,
-        string memory, // description - unused but kept for interface compatibility
+        string memory /*description*/, 
         string memory metadataURI,
         uint256 quantity
     ) public returns (address nftContract) {
         require(quantity > 0 && quantity <= 10000, "Invalid quantity");
         
-        // Generate symbol from name
+        // Generate symbol (first 3 chars + "NFT")
         string memory symbol = string(abi.encodePacked(_getFirstChars(nftName, 3), "NFT"));
         
         // Create NFT collection
@@ -81,11 +80,11 @@ contract MasterFactory {
     }
 
     /**
-     * @dev Add NFT(s) to the shared community collection
+     * @dev Add NFT to shared community collection
      */
     function addToSharedCollection(
-        string memory, // nftName - unused but kept for interface compatibility
-        string memory, // description - unused but kept for interface compatibility
+        string memory /*nftName*/,
+        string memory /*description*/,
         string memory metadataURI,
         uint256 quantity,
         address creatorWallet
@@ -109,7 +108,7 @@ contract MasterFactory {
     }
     
     /**
-     * @dev Helper function to get first N characters for symbol generation
+     * @dev Get first N characters for symbol generation
      */
     function _getFirstChars(string memory str, uint256 n) internal pure returns (string memory) {
         bytes memory strBytes = bytes(str);

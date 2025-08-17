@@ -1,0 +1,55 @@
+🎯 REMIX DEPLOYMENT - QUICK CHECKLIST
+
+📋 PRE-DEPLOYMENT:
+□ Remix IDE open (https://remix.ethereum.org)
+□ All contract files uploaded to Remix contracts folder
+□ MetaMask connected to Avalanche Mainnet (Chain ID: 43114)
+□ Wallet has 0.01+ AVAX for gas fees
+□ OpenZeppelin contracts available (@openzeppelin/contracts)
+
+🔧 CONTRACTS TO DEPLOY:
+□ SharedNFTCollection.sol - NEW shared community collection
+□ MasterFactory.sol - UPDATED with shared collection support
+
+⚙️ COMPILATION:
+□ Solidity Compiler: Version 0.8.20+
+□ Optimization: Enabled (200 runs)  
+□ Compile SharedNFTCollection.sol ✅
+□ Compile MasterFactory.sol ✅
+
+🚀 DEPLOYMENT STEPS:
+□ Environment: "Injected Provider - MetaMask"
+□ Select contract: "MasterFactory"
+□ Gas Limit: 5,000,000
+□ Gas Price: 25 nAVAX
+□ Click "Deploy"
+□ Confirm in MetaMask
+□ Wait for confirmation
+
+✅ VERIFICATION:
+□ MasterFactory deployed successfully
+□ Call tokenFactory() → get address
+□ Call nftFactory() → get address  
+□ Call sharedCollection() → get address
+□ Call getSharedCollectionInfo() → verify collection details
+
+📝 COPY ADDRESSES:
+□ MasterFactory: 0x________________
+□ SharedCollection: 0x________________
+□ TokenFactory: 0x________________
+□ NFTFactory: 0x________________
+
+🔧 UPDATE CONFIG:
+□ Edit src/config.ts
+□ Replace MASTER_FACTORY address with new deployment
+□ Save and restart frontend
+
+🧪 TEST:
+□ Frontend: "create nft called Test Art"
+□ Verify NFT added to shared collection
+□ Check explorer: https://web3.okx.com/explorer/avalanche/assets/[SHARED_ADDRESS]/1
+
+🎉 DEPLOYMENT COMPLETE!
+
+Your shared NFT collection system is now live on Avalanche!
+Users can now contribute NFTs to the same collection with sequential token IDs.

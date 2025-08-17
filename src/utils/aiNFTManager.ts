@@ -152,7 +152,7 @@ export class AINFTManager {
           hasCustomImage: true
         };
         
-        this.reset();
+        // DON'T reset here - let ChatInterface handle reset after successful deployment
         return this.formatDeploymentMessage(deployData);
       } else if (lowerMessage === 'no' || lowerMessage === 'n' || lowerMessage === 'cancel') {
         this.reset();
@@ -193,7 +193,7 @@ export class AINFTManager {
       ? `Custom upload: ${this.state.imageFile.name} (${(this.state.imageFile.size / 1024 / 1024).toFixed(2)} MB)`
       : '❌ No image uploaded - Please upload an image first!';
       
-    return `✨ **NFT Creation Summary**\n\n🏷️ **Name:** ${this.state.name}\n📝 **Description:** ${this.state.description}\n🎨 **Image:** ${imageInfo}\n🔢 **Quantity:** ${this.state.quantity}\n\n---\n\n💰 **Gas Fee:** ~0.01 AVAX (estimated)\n⏱️ **Time:** ~30-60 seconds\n🌐 **Network:** Avalanche Mainnet\n\n**Ready to create your NFT?**\n\n• Type **"yes"** to proceed ✅  \n• Type **"no"** to cancel ❌  \n• Type **"edit"** to modify details 📝`;
+    return `✨ **NFT Creation Summary**\n\n🏷️ **Name:** ${this.state.name}\n📝 **Description:** ${this.state.description}\n🎨 **Image:** ${imageInfo}\n🔢 **Quantity:** ${this.state.quantity}\n\n---\n\n💰 **Gas Fee:** ~0.002 AVAX (~$0.05) 💸\n⏱️ **Time:** ~30-60 seconds\n🌐 **Network:** Avalanche Mainnet\n\n**Ready to create your NFT?**\n\n• Type **"yes"** to proceed ✅  \n• Type **"no"** to cancel ❌  \n• Type **"edit"** to modify details 📝`;
   }
 
   private formatDeploymentMessage(data: any): string {

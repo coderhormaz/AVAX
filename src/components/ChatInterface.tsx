@@ -35,14 +35,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     {
       id: '1',
       type: 'system',
-      content: `Hey there! 👋 Welcome to AVAX AI!\n\nI'm your intelligent blockchain buddy who speaks your language! 🧠✨\n\n**What I can do for you:**\n• 💸 **Send AVAX** - "send 2 AVAX to my friend"\n• 🪙 **Create Tokens** - "make a GameCoin with 1M supply"\n• 🎨 **Create NFTs** - "create nft called CoolArt" (I'll ask questions in chat!)\n• 🔍 **Smart Help** - I understand typos, casual language & synonyms!\n\n**Try me with natural language:**\n• "hey, make me a token called AwesomeToken"\n• "send some avax to 0x123..."\n• "create nft named pixel art" - I'll guide you step by step!\n\nWhat awesome thing shall we build today? 🚀`,
+      content: `Hey there! 👋 Welcome to AVAX AI!\n\nI'm your intelligent blockchain buddy who speaks your language! 🧠✨\n\n**What I can do for you:**\n• 💸 **Send AVAX** - "send 2 AVAX to my friend"\n• 🪙 **Create Tokens** - "make a GameCoin with 1M supply"\n• 🎨 **Create NFTs** - "create nft called CoolArt" (joins our community collection!)\n• 🔍 **Smart Help** - I understand typos, casual language & synonyms!\n\n**🌐 NEW: Community NFT Collection!**\n• All NFTs go into one shared collection\n• Sequential token IDs: 1, 2, 3, 4, 5...\n• Lower gas fees, higher discoverability\n• View at: ${CONFIG.generateNFTUrl('[ADDRESS]', '[ID]')}\n\n**Try me with natural language:**\n• "hey, make me a token called AwesomeToken"\n• "send some avax to 0x123..."\n• "create nft named pixel art" - I'll add it to our community collection!\n\nWhat awesome thing shall we build today? 🚀`,
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showNFTWizard, setShowNFTWizard] = useState(false);
-  const [nftInitialMessage, setNftInitialMessage] = useState('');
+  const [nftInitialMessage] = useState('');
   const [nftState, setNftState] = useState(aiNFTManager.getCurrentState());
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -207,6 +207,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         console.log(`Deploying ${requestType} with parameters:`, parameters);
         
         if (requestType === 'token') {
+          console.log('🪙 TOKEN DEPLOYMENT: Using AIDeployment.deployTokenForAI');
           const { deployTokenForAI } = await import('./AIDeployment');
           result = await deployTokenForAI(
             parameters.name,
@@ -215,42 +216,149 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             wallet
           );
         } else {
-          const { deployNFTForAI } = await import('./AIDeployment');
           // Require image file for NFT creation
           const imageFile = parameters.imageFile;
+          
+          console.log('🎨 NFT DEPLOYMENT: Parameters check:', {
+            name: parameters.name,
+            description: parameters.description,
+            quantity: parameters.quantity,
+            imageFile: imageFile ? imageFile.name : 'null',
+            hasImageFile: !!imageFile,
+            requestType: requestType,
+            parametersType: typeof parameters
+          });
+          
           if (!imageFile) {
+            console.error('❌ NFT DEPLOYMENT: No image file found in parameters!');
+            console.log('NFT Manager debug info:', aiNFTManager.getDebugInfo());
             throw new Error('Image file is required for NFT creation. Please upload an image first.');
           }
           
-          result = await deployNFTForAI(
+          console.log('🎯 NFT DEPLOYMENT: Using deployed MasterFactory with shared collection support');
+          const { deployNFTForAI: enhancedDeployNFTForAI } = await import('./EnhancedAIDeployment');
+          console.log('✅ NFT DEPLOYMENT: EnhancedAIDeployment module imported successfully');
+          
+          // Use shared collection for community experience (default behavior)
+          const useSharedCollection = true;
+          
+          // Create proper metadata URI - upload image to IPFS if provided
+          let metadataURI;
+          if (imageFile) {
+            console.log('📸 Uploading image to IPFS...');
+            try {
+              const { uploadImageForNFTLighthouseOriginal } = await import('../services/ipfs-lighthouse-original');
+              const { imageURI, metadataURI: uploadedMetadataURI } = await uploadImageForNFTLighthouseOriginal(
+                imageFile, 
+                parameters.name, 
+                parameters.description || ''
+              );
+              metadataURI = uploadedMetadataURI;
+              console.log('✅ Image uploaded to IPFS:', imageURI);
+            } catch (uploadError) {
+              console.error('❌ Image upload failed, using placeholder:', uploadError);
+              metadataURI = `data:application/json,{"name":"${parameters.name}","description":"${parameters.description || ''}","image":"https://via.placeholder.com/400x400.png?text=NFT"}`;
+            }
+          } else {
+            metadataURI = `data:application/json,{"name":"${parameters.name}","description":"${parameters.description || ''}","image":"https://via.placeholder.com/400x400.png?text=NFT"}`;
+          }
+          
+          result = await enhancedDeployNFTForAI(
             parameters.name,
             parameters.description || '',
-            imageFile,
+            metadataURI, // Pass proper metadata URI string with IPFS image
             parameters.quantity || 1,
-            wallet
+            wallet,
+            useSharedCollection
           );
+          
+          console.log('🎯 NFT DEPLOYMENT: SimpleAIDeployment result:', result);
         }
 
         console.log('Deployment result:', result);
+        
+        // Reset NFT manager after successful deployment
+        if (result && result.success && requestType === 'nft') {
+          console.log('🎉 NFT deployment successful, resetting NFT manager');
+          aiNFTManager.reset();
+          setNftState(aiNFTManager.getCurrentState());
+        }
         
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
 
         if (result && result.success) {
-          const explorerLink = requestType === 'nft' 
-            ? `[OKX Web3 Explorer](${result.tokenUrl})`
-            : `[Snowtrace](${CONFIG.NETWORK.MAINNET.explorerUrl}/address/${result.contractAddress})`;
+          // Enhanced success message with comprehensive NFT information
+          let successContent = '';
+          
+          if (requestType === 'nft') {
+            const nftResult = result as any; // Cast to handle different result types
+            
+            if (nftResult.type === 'shared') {
+              // Shared collection success message
+              successContent = `🎉 **NFT Added to Community Collection!**\n\n` +
+                `✨ **Your NFT is now part of the shared collection!**\n\n` +
+                `📋 **NFT Details:**\n` +
+                `• **Collection:** AI Community Collection (AICC)\n` +
+                `• **Contract Address:** \`${nftResult.sharedCollectionAddress}\`\n` +
+                `• **Your Token IDs:** ${nftResult.tokenIds ? nftResult.tokenIds.join(', ') : 'Unknown'}\n` +
+                `• **Quantity:** ${parameters.quantity || 1} NFT${(parameters.quantity || 1) > 1 ? 's' : ''}\n\n` +
+                `🔗 **View Your NFTs:**\n` +
+                (nftResult.data?.viewUrls ? 
+                  nftResult.data.viewUrls.map((url: string, idx: number) => 
+                    `• [🎨 NFT #${nftResult.tokenIds[idx]}](${url})`
+                  ).join('\n') + '\n\n' :
+                  `• Visit: ${CONFIG.generateNFTUrl(nftResult.sharedCollectionAddress || '', '[TOKEN_ID]')}\n\n`
+                ) +
+                `🌐 **Community Collection Benefits:**\n` +
+                `• **One Address:** All community NFTs in same collection\n` +
+                `• **Sequential IDs:** Your NFTs have consecutive token numbers\n` +
+                `• **Discoverable:** Part of a growing community collection\n` +
+                `• **Lower Gas:** Shared deployment costs\n\n` +
+                `🎯 **What's Next:**\n` +
+                `• Your NFTs are immediately viewable on OKX Explorer\n` +
+                `• Add the collection to MetaMask using the contract address\n` +
+                `• Share your token IDs with friends!\n\n` +
+                `✨ **Welcome to the AI Community Collection!**`;
+            } else {
+              // Individual collection success message  
+              successContent = `🎉 **Individual NFT Collection Created!**\n\n` +
+                `✨ **You now own your own NFT collection!**\n\n` +
+                `📋 **Collection Details:**\n` +
+                `• **Your Contract:** \`${nftResult.contractAddress}\`\n` +
+                `• **Token IDs:** ${nftResult.tokenIds ? nftResult.tokenIds.join(', ') : '1-' + (parameters.quantity || 1)}\n` +
+                `• **Quantity:** ${parameters.quantity || 1} NFT${(parameters.quantity || 1) > 1 ? 's' : ''}\n\n` +
+                `� **View Your Collection:**\n` +
+                (nftResult.data?.viewUrls ? 
+                  nftResult.data.viewUrls.map((url: string, idx: number) => 
+                    `• [🎨 NFT #${idx + 1}](${url})`
+                  ).join('\n') + '\n\n' :
+                  `• Visit: ${CONFIG.generateNFTUrl(nftResult.contractAddress || '', '[TOKEN_ID]')}\n\n`
+                ) +
+                `🎯 **Collection Owner Benefits:**\n` +
+                `• **Full Control:** You own the entire collection contract\n` +
+                `• **Exclusive:** Your own unique collection address\n` +
+                `• **Expandable:** You can mint more NFTs anytime\n` +
+                `• **Tradeable:** List on any NFT marketplace\n\n` +
+                `✨ **Your collection is live on Avalanche!**`;
+            }
+          } else {
+            // Token success message (unchanged)
+            const tokenResult = result as any;
+            const explorerLink = `[Snowtrace](${CONFIG.NETWORK.MAINNET.explorerUrl}/address/${tokenResult.contractAddress})`;
+            successContent = `✅ **Token Created Successfully**\n\n${tokenResult.message || 'Token deployed successfully'}\n\n**Contract Address:** ${tokenResult.contractAddress}\n**Transaction Hash:** ${tokenResult.transactionHash || 'Unknown'}\n\n📍 **View Transaction:** [Snowtrace](${CONFIG.NETWORK.MAINNET.explorerUrl}/tx/${tokenResult.transactionHash || ''})\n🎯 **View Token:** ${explorerLink}`;
+          }
           
           addMessage({
             type: 'ai',
-            content: `✅ **${requestType === 'token' ? 'Token' : 'NFT'} Created Successfully**\n\n${result.message}\n\n**Contract Address:** ${result.contractAddress}\n**Transaction Hash:** ${result.transactionHash}\n\n📍 **View Transaction:** [Snowtrace](${CONFIG.NETWORK.MAINNET.explorerUrl}/tx/${result.transactionHash})\n🎯 **View ${requestType === 'token' ? 'Token' : 'NFT'}:** ${explorerLink}`,
-            txHash: result.transactionHash
+            content: successContent,
+            txHash: (result as any).transactionHash || (result as any).data?.receipt?.hash
           });
           onTransactionComplete();
         } else {
           addMessage({
             type: 'ai',
-            content: `❌ **Deployment Failed**\n\n${result?.message || 'Unknown deployment error occurred'}`
+            content: `❌ **Deployment Failed**\n\n${(result as any)?.error || 'Unknown deployment error occurred'}`
           });
         }
       } catch (error) {
@@ -278,7 +386,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       type: 'ai' as const,
       content: requestType === 'token'
         ? `🪙 **Confirm Token Deployment**\n\n**Your Request:** "${userPrompt}"\n\n**AI Parsed Details:**\n• **Token Name:** ${parameters.name}\n• **Symbol:** ${parameters.ticker}\n• **Supply:** ${parameters.supply.toLocaleString()}\n• **Decimals:** ${parameters.decimals}\n\n📋 **Deployment Info:**\n• Network: Avalanche Mainnet\n• Estimated Cost: ~0.0125 AVAX\n• Auto-Signature: MetaMask will auto-sign\n• Ownership: You will own 100% of the tokens`
-        : `🖼️ **Confirm NFT Deployment**\n\n**Your Request:** "${userPrompt}"\n\n**AI Parsed Details:**\n• **NFT Name:** ${parameters.name}\n• **Description:** ${parameters.description}\n• **Quantity:** ${parameters.quantity}\n• **Image:** ${parameters.imageFile ? parameters.imageFile.name : '🎨 Auto-generated placeholder image'}\n\n📋 **Deployment Info:**\n• Network: Avalanche Mainnet\n• Estimated Cost: ~0.0175 AVAX\n• Auto-Signature: MetaMask will auto-sign\n• Ownership: You will own 100% of the NFTs`,
+        : `🖼️ **Confirm NFT Addition to Community Collection**\n\n**Your Request:** "${userPrompt}"\n\n**AI Parsed Details:**\n• **NFT Name:** ${parameters.name}\n• **Description:** ${parameters.description}\n• **Quantity:** ${parameters.quantity}\n• **Image:** ${parameters.imageFile ? parameters.imageFile.name : '🎨 Auto-generated placeholder image'}\n\n🌐 **Community Collection Benefits:**\n• **Shared Collection:** Your NFT joins the AI Community Collection\n• **Sequential Token IDs:** Get the next available numbers (e.g., 1, 2, 3...)\n• **Lower Gas Fees:** ~0.001 AVAX (~$0.03) vs individual collection\n• **Higher Discoverability:** Part of a growing community\n• **Same Contract Address:** All community NFTs at one address\n\n📋 **Deployment Info:**\n• Network: Avalanche Mainnet\n• Collection: AI Community Collection (AICC)\n• Auto-Signature: MetaMask will auto-sign\n• Ownership: You will own your NFTs in the shared collection`,
       timestamp: new Date(),
       needsConfirmation: true,
       confirmationType: 'ai_deployment' as const,
@@ -341,6 +449,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const aiManagerState = aiTokenManager.getCurrentState();
       const aiNFTState = aiNFTManager.getCurrentState();
       
+      console.log('🔍 Classification Debug:', {
+        userMessage,
+        hasTokenKeyword,
+        hasNFTKeyword,
+        hasConfirmKeyword,
+        aiManagerState: aiManagerState.stage,
+        aiNFTState: aiNFTState.stage
+      });
+      
+      // 🎯 PRIORITY CLASSIFICATION: NFT takes precedence over token when both keywords are present
       // If it's an NFT request or we're in NFT creation flow, use conversational NFT system
       if (hasNFTKeyword || aiNFTState.stage !== 'idle') {
         console.log('🎨 NFT request detected, using conversational NFT system');
@@ -357,6 +475,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 // Get the current image file from NFT manager
                 const nftState = aiNFTManager.getCurrentState();
                 const imageFile = nftState.imageFile;
+                
+                console.log('🖼️ NFT deployment data:', {
+                  deployData,
+                  nftManagerState: nftState,
+                  hasImageFile: !!imageFile,
+                  imageFileName: imageFile ? imageFile.name : 'none',
+                  debugInfo: aiNFTManager.getDebugInfo()
+                });
                 
                 // Create confirmation message for actual deployment
                 const confirmationMessage = createAIConfirmationMessage('nft', {
@@ -384,8 +510,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         return;
       }
       
-      // If AI manager is in confirming state, or if it's a token request (but not NFT), use AI manager
-      if ((hasTokenKeyword && !hasNFTKeyword) || hasConfirmKeyword || aiManagerState.stage === 'confirming') {
+      // If AI manager is in confirming state, or if it's a token request (but NOT NFT), use AI manager
+      if (((hasTokenKeyword && !hasNFTKeyword) || hasConfirmKeyword || aiManagerState.stage === 'confirming') && !hasNFTKeyword) {
         // Use our advanced AI Token system
         console.log('🤖 Using AI Token Creation System for:', userMessage);
         const aiTokenResponse = await aiTokenManager.processUserInput(userMessage);
@@ -529,15 +655,41 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('handleImageUpload called!', event.target.files);
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
+    console.log('File selected:', file.name, file.type, file.size);
+
+    // Validate file type - be more flexible with image types
+    const validTypes = [
+      'image/jpeg', 
+      'image/png', 
+      'image/gif', 
+      'image/webp',
+      'image/bmp',
+      'image/svg+xml'
+    ];
+    
+    // Also check file extension as backup
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+    
+    console.log('File type validation:', {
+      fileType: file.type,
+      fileExtension: fileExtension,
+      isValidType: validTypes.includes(file.type),
+      isValidExtension: validExtensions.includes(fileExtension || '')
+    });
+    
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension || '')) {
+      console.error('File validation failed:', file.type, fileExtension);
       addMessage({
         type: 'ai',
-        content: `❌ **Invalid File Type**\n\nPlease upload a valid image file (JPEG, PNG, GIF, or WebP).`
+        content: `❌ **Invalid File Type**\n\nPlease upload a valid image file (JPEG, PNG, GIF, WebP, BMP, or SVG).\n\nDetected type: ${file.type}\nFile extension: ${fileExtension}`
       });
       return;
     }
@@ -787,13 +939,31 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   onChange={handleImageUpload}
-                  style={{ display: 'none' }}
+                  multiple={false}
+                  style={{ 
+                    display: 'none',
+                    position: 'absolute',
+                    opacity: 0,
+                    pointerEvents: 'none'
+                  }}
                 />
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Upload button clicked!');
+                    if (fileInputRef.current) {
+                      console.log('File input ref exists, triggering click');
+                      fileInputRef.current.click();
+                    } else {
+                      console.error('File input ref is null!');
+                    }
+                  }}
                   className="upload-btn"
+                  disabled={false}
                   style={{
                     width: '36px',
                     height: '36px',
@@ -802,7 +972,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    border: '2px solid transparent',
+                    border: 'none',
+                    outline: 'none',
                     transition: 'all 0.2s ease',
                     background: nftState.imageFile 
                       ? 'linear-gradient(135deg, #059669, #047857)' // Darker green if image uploaded
@@ -810,6 +981,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     cursor: 'pointer',
                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                     transform: 'translateY(0)',
+                    pointerEvents: 'auto',
+                    zIndex: 1000,
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-1px)';

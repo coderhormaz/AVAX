@@ -17,9 +17,14 @@ export const CONFIG = {
       chainId: 43114,
       rpcUrl: getEnvVar('VITE_MAINNET_RPC_URL', 'https://api.avax.network/ext/bc/C/rpc'),
       explorerUrl: getEnvVar('VITE_EXPLORER_URL', 'https://web3.okx.com/explorer/avalanche'),
-      nftExplorerUrl: getEnvVar('VITE_NFT_EXPLORER_URL', 'https://web3.okx.com/explorer/avalanche/assets'),
+      nftExplorerUrl: getEnvVar('VITE_NFT_EXPLORER_URL', 'https://snowtrace.io/nft'),
       currency: 'AVAX'
     }
+  },
+
+  // Helper function to generate NFT URLs
+  generateNFTUrl: (contractAddress: string, tokenId: string | number) => {
+    return `https://snowtrace.io/nft/${contractAddress}/${tokenId}?chainid=43114&type=erc721`;
   },
 
   // Always use Mainnet
@@ -34,7 +39,10 @@ export const CONFIG = {
   // Contract Addresses (Deployed Contract Information)
   CONTRACTS: {
     // Main Factory Contract - AI Assistant uses this address (deployed on Avalanche Mainnet)
-    MASTER_FACTORY: getEnvVar('VITE_MASTER_FACTORY_ADDRESS', '0x5708fBd5178DD97AC90848de5800fF79b947051d')
+    MASTER_FACTORY: getEnvVar('VITE_MASTER_FACTORY_ADDRESS', '0x56c4e87Efdfb11266D409c8d47F5E92A5F98Fc10'),
+    
+    // Shared Collection Factory - Simplified contract for shared NFT collection
+    SHARED_COLLECTION_FACTORY: getEnvVar('VITE_SHARED_COLLECTION_FACTORY_ADDRESS', '0x56c4e87Efdfb11266D409c8d47F5E92A5F98Fc10')
   },
 
   // IPFS/Storage Configuration

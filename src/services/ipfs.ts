@@ -93,42 +93,25 @@ export class IPFSService {
     }
   }
 
-  // Primary upload method with automatic fallback
+  // Primary upload method - Lighthouse ONLY (no expensive fallbacks)
   async uploadFile(file: File, name?: string): Promise<string> {
     console.log('🔄 Starting IPFS upload for:', file.name);
     
-    // Try Lighthouse first (has API key configured)
+    // Use Lighthouse ONLY (cheaper and works well)
     if (this.lighthouseApiKey) {
       try {
-        console.log('📡 Attempting Lighthouse upload...');
+        console.log('📡 Using Lighthouse upload (no fallbacks)...');
         const result = await this.uploadToLighthouse(file, name);
         console.log('✅ Lighthouse upload successful:', result);
         return result;
       } catch (error) {
-        console.warn('⚠️ Lighthouse upload failed, trying Pinata...', error);
+        console.error('❌ Lighthouse upload failed:', error);
+        throw new Error(`Lighthouse upload failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
-    // Fallback to Pinata
-    if (this.pinataJWT) {
-      try {
-        console.log('📡 Attempting Pinata upload...');
-        const result = await this.uploadToPinata(file, name);
-        console.log('✅ Pinata upload successful:', result);
-        return result;
-      } catch (error) {
-        console.error('❌ Pinata upload also failed:', error);
-        throw error;
-      }
-    }
-
-    // If no credentials available, throw helpful error
-    throw new Error(
-      '❌ No IPFS upload service configured! Please set either:\n' +
-      '• VITE_LIGHTHOUSE_API_KEY for Lighthouse\n' +
-      '• VITE_PINATA_JWT for Pinata\n' +
-      'in your .env file'
-    );
+    // If no Lighthouse API key, throw error (don't use expensive Pinata)
+    throw new Error('Lighthouse API key not configured. Please add VITE_LIGHTHOUSE_API_KEY to your environment.');
   }
 
   // Upload JSON metadata to IPFS with fallback

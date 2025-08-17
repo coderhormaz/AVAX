@@ -2,7 +2,8 @@
 // Shows parsed details and handles auto-deployment
 
 import React, { useState } from 'react';
-import { deployTokenForAI, deployNFTForAI } from './AIDeployment';
+import { deployTokenForAI } from './AIDeployment';
+import { deployNFTForAI } from './SimpleAIDeployment';
 import type { WalletData } from '../App';
 
 interface ConfirmationDialogProps {
