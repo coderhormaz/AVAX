@@ -209,7 +209,7 @@ export const parseCommand = async (userInput: string, _walletAddress?: string): 
   }
 
   // Enhanced NFT patterns with creative understanding
-  if (/(mint|create|make|generate|produce|issue)/.test(input) && /(nft|collectible|digital art|non-fungible|unique token|artwork)/.test(input)) {
+  if (/(mint|create|make|generate|produce|issue)/.test(input) && /(nft|collectible|digital art|non-fungible|unique token|artwork|art|digital|collectible)/.test(input)) {
     // More flexible name extraction - look for quoted names, after "called/named", or any descriptive text
     const nameMatch = input.match(/(?:called|named|titled|with name|known as)\s+["']?([^"',\n]+)["']?/i) ||
                      input.match(/(?:nft|collectible|art)\s+["']?([^"',\n]+?)["']?(?:\s+(?:with|description|desc)|$)/i) ||
@@ -265,9 +265,10 @@ export const parseCommand = async (userInput: string, _walletAddress?: string): 
   }
 
   // Enhanced Create Token patterns (moved after NFT to avoid conflicts)
+  // Only detect as token if it explicitly mentions token/coin AND doesn't mention NFT keywords
   if (/(create|make|deploy|launch|build|generate|start|new)/.test(input) && 
-      /(token|coin|currency|crypto|digital asset)/.test(input) && 
-      !/(nft|collectible|digital art|non-fungible|unique token|artwork)/.test(input)) {
+      /(token|coin|currency|crypto|cryptocurrency|erc20|erc-20)/.test(input) && 
+      !/(nft|collectible|digital art|non-fungible|artwork|art|erc721|erc-721)/.test(input)) {
     // Advanced name extraction patterns
     const namePatterns = [
       /(?:called|named|titled|with name|known as)\s+([a-zA-Z0-9\s]+?)(?:\s+(?:symbol|ticker|with|supply|decimals)|$)/i,

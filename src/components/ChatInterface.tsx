@@ -323,12 +323,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       // Check if this looks like a token creation request or confirmation
       const tokenKeywords = ['create', 'make', 'generate', 'build', 'deploy', 'token', 'coin', 'currency'];
-      const nftKeywords = ['nft', 'collectible', 'digital art', 'non-fungible', 'unique token', 'artwork', 'mint'];
+      const nftKeywords = ['nft', 'collectible', 'digital art', 'non-fungible', 'unique token', 'artwork', 'mint', 'art', 'digital', 'erc721'];
       const confirmKeywords = ['yes', 'y', 'confirm', 'proceed', 'no', 'n', 'edit', 'change', 'cancel'];
       
-      const hasTokenKeyword = tokenKeywords.some(keyword => 
-        userMessage.toLowerCase().includes(keyword)
-      );
+      // More specific token detection - must have explicit token/coin keywords
+      const hasTokenKeyword = /(token|coin|currency|crypto|cryptocurrency|erc20)/.test(userMessage.toLowerCase()) &&
+                              !/(nft|collectible|digital art|non-fungible|artwork|art|erc721)/.test(userMessage.toLowerCase());
       
       const hasNFTKeyword = nftKeywords.some(keyword => 
         userMessage.toLowerCase().includes(keyword)
@@ -341,8 +341,53 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const aiManagerState = aiTokenManager.getCurrentState();
       const aiNFTState = aiNFTManager.getCurrentState();
       
-      // If it's an NFT request or we're in NFT creation flow, use conversational NFT system
-      if (hasNFTKeyword || aiNFTState.stage !== 'idle') {
+      // Priority 1: If we're already in NFT creation flow, continue with NFT system
+      if (aiNFTState.stage !== 'idle') {
+        console.log('🎨 Continuing NFT creation flow, current stage:', aiNFTState.stage);
+        const nftResponse = await aiNFTManager.processUserInput(userMessage);
+        
+        // Check if the response contains deployment data (NFT creation confirmation)
+        if (nftResponse.includes('_{"name"')) {
+            // Extract deployment data and trigger actual NFT creation
+            const match = nftResponse.match(/_(\{.*\})_/);
+            if (match) {
+              try {
+                const deployData = JSON.parse(match[1]);
+                
+                // Get the current image file from NFT manager
+                const nftState = aiNFTManager.getCurrentState();
+                const imageFile = nftState.imageFile;
+                
+                // Create confirmation message for actual deployment
+                const confirmationMessage = createAIConfirmationMessage('nft', {
+                  name: deployData.name,
+                  description: deployData.description,
+                  quantity: deployData.quantity,
+                  imageFile: imageFile  // Pass the actual File object
+                }, userMessage);
+                
+                setMessages(prev => [...prev, confirmationMessage]);
+                return;
+              } catch (error) {
+                console.error('Failed to parse deployment data:', error);
+              }
+            }
+          }
+        
+        addMessage({
+          type: 'ai',
+          content: nftResponse
+        });
+        
+        // Update NFT state to trigger re-render of upload button
+        const newNftState = aiNFTManager.getCurrentState();
+        console.log('NFT State Updated:', newNftState.stage, 'Has Image:', !!newNftState.imageFile);
+        setNftState(newNftState);
+        return;
+      }
+      
+      // Priority 2: If it's a clear NFT request, start NFT creation flow
+      if (hasNFTKeyword) {
         console.log('🎨 NFT request detected, using conversational NFT system');
         const nftResponse = await aiNFTManager.processUserInput(userMessage);
         
