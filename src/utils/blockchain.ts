@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Wallet, parseEther, formatEther, isAddress, parseUnits, ContractFactory, Contract } from 'ethers';
+import { JsonRpcProvider, Wallet, parseEther, formatEther, isAddress, parseUnits, Contract } from 'ethers';
 import type { TransactionReceipt, TransactionRequest } from 'ethers';
 import { getCurrentNetwork, getExplorerLink } from '../config';
 
@@ -97,52 +97,39 @@ export const sendAvax = async (params: SendAvaxParams): Promise<TransactionResul
 };
 
 /**
- * Deploy ERC20 Token Contract
+ * Deploy ERC20 Token Contract using MasterFactory
  */
 export const deployToken = async (params: DeployTokenParams): Promise<TransactionResult> => {
   try {
-    const { privateKey, name, symbol, initialSupply, decimals } = params;
+    const { privateKey, name, symbol, initialSupply } = params;
     
     // Create wallet and provider
     const network = getCurrentNetwork();
     const provider = new JsonRpcProvider(network.rpcUrl);
     const wallet = new Wallet(privateKey, provider);
     
-    // ERC20 Token Contract ABI (minimal for deployment)
-    const tokenABI = [
-      "constructor(string memory name, string memory symbol, uint256 initialSupply, uint8 decimals_, address owner)"
+    // MasterFactory contract address - ONLY for tokens
+    const MASTER_FACTORY_ADDRESS = "0x5708FBd5178DD97AC90848de5800FF79b947051d";
+    
+    // MasterFactory ABI for createToken function
+    const masterFactoryABI = [
+      "function createToken(string memory name, string memory ticker, uint256 supply) public returns (address)"
     ];
     
-    // You'll need to update this with the actual bytecode from Remix compilation
-    const tokenBytecode = ""; // This should be filled with compiled bytecode
+    // Create contract instance
+    const masterFactory = new Contract(MASTER_FACTORY_ADDRESS, masterFactoryABI, wallet);
     
-    if (!tokenBytecode) {
-      throw new Error('Token contract bytecode not available. Please deploy the contract first using Remix.');
-    }
+    // Call createToken function
+    const tx = await masterFactory.createToken(name, symbol, initialSupply);
     
-    // Create contract factory
-    const factory = new ContractFactory(tokenABI, tokenBytecode, wallet);
-    
-    // Deploy contract
-    const contract = await factory.deploy(
-      name,
-      symbol,
-      initialSupply,
-      decimals,
-      wallet.address
-    );
-    
-    // Wait for deployment
-    const deployTx = contract.deploymentTransaction();
-    if (deployTx) {
-      await deployTx.wait();
-    }
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
     
     return {
       success: true,
-      txHash: deployTx?.hash,
-      explorerLink: getExplorerLink(await contract.getAddress(), 'address'),
-      receipt: deployTx ? (await deployTx.wait() || undefined) : undefined
+      txHash: tx.hash,
+      explorerLink: getExplorerLink(tx.hash, 'tx'),
+      receipt: receipt || undefined
     };
     
   } catch (error: any) {

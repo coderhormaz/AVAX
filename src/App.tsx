@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { WalletConnectModal } from './components/WalletConnectModal';
 import { ChatInterface } from './components/ChatInterface';
 import { WalletInfo } from './components/WalletInfo';
+import { AuthModal } from './components/AuthModal';
+import { UserProfile } from './components/UserProfile';
 import IPFSDebugPanel from './components/IPFSDebugPanel';
 import { createWalletFromPrivateKey } from './utils/wallet';
 import { initializeAI } from './utils/ai';
+import { authService, type AuthUser } from './services/auth';
 import { CONFIG } from './config';
 import './App.css';
 import './styles/modern-landing.css';
@@ -16,10 +19,13 @@ export interface WalletData {
 }
 
 function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   const [currentSection, setCurrentSection] = useState('home');
   
   // Typing animation state
@@ -37,15 +43,29 @@ function App() {
           console.warn('AI features will be limited without API key');
         }
 
-        // Check for stored wallet
-        const storedKey = localStorage.getItem(CONFIG.WALLET.STORAGE_KEY);
-        if (storedKey) {
-          try {
-            const walletInfo = await createWalletFromPrivateKey(storedKey);
-            setWallet(walletInfo);
-          } catch (err) {
-            console.error('Failed to restore wallet:', err);
-            localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
+        // Try to restore user session first
+        const restoredUser = await authService.restoreSession();
+        if (restoredUser) {
+          setUser(restoredUser);
+          // Convert to wallet format for existing components
+          setWallet({
+            address: restoredUser.wallet.address,
+            balance: restoredUser.wallet.balance,
+            privateKey: restoredUser.wallet.privateKey
+          });
+        } else {
+          // Check for legacy stored wallet (for backwards compatibility)
+          const storedKey = localStorage.getItem(CONFIG.WALLET.STORAGE_KEY);
+          if (storedKey) {
+            try {
+              const walletInfo = await createWalletFromPrivateKey(storedKey);
+              setWallet(walletInfo);
+              // Clear legacy storage
+              localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
+            } catch (err) {
+              console.error('Failed to restore legacy wallet:', err);
+              localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
+            }
           }
         }
       } catch (err: any) {
@@ -81,6 +101,16 @@ function App() {
     setIsTyping(true);
   }, []);
 
+  const handleAuthSuccess = (authenticatedUser: AuthUser) => {
+    setUser(authenticatedUser);
+    setWallet({
+      address: authenticatedUser.wallet.address,
+      balance: authenticatedUser.wallet.balance,
+      privateKey: authenticatedUser.wallet.privateKey
+    });
+    setAuthModalOpen(false);
+  };
+
   const handleWalletConnect = async (privateKey: string) => {
     try {
       setError(null);
@@ -97,8 +127,21 @@ function App() {
   };
 
   const handleWalletDisconnect = () => {
-    localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
+    if (user) {
+      // If user is authenticated, show profile instead of disconnecting
+      setShowUserProfile(true);
+    } else {
+      // Legacy wallet disconnect
+      localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
+      setWallet(null);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
     setWallet(null);
+    setShowUserProfile(false);
+    localStorage.removeItem(CONFIG.WALLET.STORAGE_KEY);
   };
 
   const refreshWalletBalance = async () => {
@@ -125,7 +168,8 @@ function App() {
       // Navigate to chat interface - this will be handled by the main interface
       return;
     } else {
-      setWalletModalOpen(true);
+      // Offer both new auth and legacy wallet options
+      setAuthModalOpen(true);
     }
   };
 
@@ -161,13 +205,17 @@ function App() {
       <div className="app">
         {/* Main Content */}
         <div className="app-main">
-          {/* Wallet Info Section */}
+          {/* User Profile or Wallet Info Section */}
           <div className="wallet-info-section">
-            <WalletInfo 
-              wallet={wallet}
-              onRefresh={refreshWalletBalance}
-              onDisconnect={handleWalletDisconnect}
-            />
+            {showUserProfile && user ? (
+              <UserProfile user={user} onLogout={handleLogout} />
+            ) : (
+              <WalletInfo 
+                wallet={wallet}
+                onRefresh={refreshWalletBalance}
+                onDisconnect={handleWalletDisconnect}
+              />
+            )}
           </div>
           
           {/* Chat Interface */}
@@ -216,6 +264,15 @@ function App() {
               <a href="#contact" onClick={() => scrollToSection('contact')} className={currentSection === 'contact' ? 'active' : ''}>
                 Contact
               </a>
+              {user ? (
+                <button 
+                  className="user-profile-btn cyber-glow" 
+                  onClick={() => setShowUserProfile(!showUserProfile)}
+                  style={{ marginRight: '10px' }}
+                >
+                  👤 {user.email || 'Local User'}
+                </button>
+              ) : null}
               <button 
                 className="lets-start-btn cyber-glow" 
                 onClick={handleLetsStart}
@@ -243,16 +300,16 @@ function App() {
             <div className="hero-buttons">
               <button 
                 className="primary-btn cosmic-pulse" 
-                onClick={() => setWalletModalOpen(true)}
+                onClick={() => setAuthModalOpen(true)}
               >
                 <span className="btn-icon">🚀</span>
-                Connect Wallet
+                Login / Signup
               </button>
               <button 
                 className="secondary-btn quantum-border" 
-                onClick={() => scrollToSection('about')}
+                onClick={() => setWalletModalOpen(true)}
               >
-                Learn More
+                Legacy Wallet
               </button>
             </div>
 
@@ -506,7 +563,14 @@ function App() {
           </div>
         </footer>
 
-        {/* Wallet Connect Modal - NO METAMASK */}
+        {/* Authentication Modal - NEW */}
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          onAuthSuccess={handleAuthSuccess}
+        />
+
+        {/* Wallet Connect Modal - Legacy Support */}
         <WalletConnectModal
           isOpen={walletModalOpen}
           onClose={() => setWalletModalOpen(false)}

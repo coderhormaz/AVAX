@@ -39,10 +39,10 @@ export const CONFIG = {
   // Contract Addresses (Deployed Contract Information)
   CONTRACTS: {
     // Main Factory Contract - AI Assistant uses this address (deployed on Avalanche Mainnet)
-    MASTER_FACTORY: getEnvVar('VITE_MASTER_FACTORY_ADDRESS', '0x56c4e87Efdfb11266D409c8d47F5E92A5F98Fc10'),
+    MASTER_FACTORY: getEnvVar('VITE_MASTER_FACTORY_ADDRESS', '0x5708FBd5178DD97AC90848de5800FF79b947051d'),
     
     // Shared Collection Factory - Simplified contract for shared NFT collection
-    SHARED_COLLECTION_FACTORY: getEnvVar('VITE_SHARED_COLLECTION_FACTORY_ADDRESS', '0x56c4e87Efdfb11266D409c8d47F5E92A5F98Fc10')
+    SHARED_COLLECTION_FACTORY: getEnvVar('VITE_SHARED_COLLECTION_FACTORY_ADDRESS', '0x5708FBd5178DD97AC90848de5800FF79b947051d')
   },
 
   // IPFS/Storage Configuration
